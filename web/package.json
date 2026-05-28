@@ -1,5 +1,5 @@
 {
-  "name": "web",
+  "name": "ai-chat-teacher-web",
   "version": "0.1.0",
   "engines": {
     "node": "24.x",
