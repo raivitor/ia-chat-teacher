@@ -52,5 +52,8 @@ export async function resetDatabase(): Promise<void> {
     return
   }
 
-  await db.execute(sql`TRUNCATE TABLE "items" RESTART IDENTITY CASCADE`)
+  await db.execute(
+    sql`TRUNCATE TABLE "messages", "conversations", "items" RESTART IDENTITY CASCADE`,
+  )
+  await db.execute(sql`ALTER SEQUENCE "conversation_seq" RESTART WITH 1`)
 }
