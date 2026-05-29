@@ -211,9 +211,10 @@ button {
 
 .conversation-item {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-3) var(--space-3);
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
   transition: background 0.12s;
   color: var(--color-sidebar-text);
@@ -226,6 +227,17 @@ button {
 .conversation-item.active {
   background: var(--color-sidebar-active-bg);
   color: #a5b4fc;
+}
+
+.conv-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) 0;
+  color: inherit;
+  text-decoration: none;
 }
 
 .conv-title {
@@ -246,6 +258,118 @@ button {
 
 .conversation-item.active .conv-level {
   color: #818cf8;
+}
+
+.conv-delete-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1);
+  color: var(--color-sidebar-text-muted);
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    background 0.15s,
+    color 0.15s;
+  cursor: pointer;
+}
+
+.conversation-item:hover .conv-delete-btn,
+.conversation-item.active .conv-delete-btn {
+  opacity: 1;
+}
+
+.conv-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+/* ============================================================
+   Delete Confirmation Modal
+   ============================================================ */
+
+.delete-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.delete-confirm-dialog {
+  background: var(--color-bg);
+  border: 1px solid var(--color-sidebar-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.delete-dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.delete-dialog-body {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.delete-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.delete-dialog-cancel {
+  background: transparent;
+  border: 1px solid var(--color-sidebar-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.delete-dialog-cancel:hover {
+  background: var(--color-sidebar-surface);
+  color: var(--color-text);
+}
+
+.delete-dialog-confirm {
+  background: #ef4444;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.delete-dialog-confirm:hover {
+  background: #dc2626;
 }
 
 .conversation-list .empty {

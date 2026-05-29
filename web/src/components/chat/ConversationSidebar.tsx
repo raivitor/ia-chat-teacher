@@ -11,10 +11,20 @@ export default function ConversationSidebar() {
   const params = useParams()
   const activeId = params?.id as string | undefined
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null)
 
   useEffect(() => {
     api.listConversations().then(setConversations).catch(console.error)
   }, [activeId])
+
+  async function handleDelete(id: string) {
+    await api.deleteConversation(id)
+    setConversations(prev => prev.filter(c => c.id !== id))
+    setConversationToDelete(null)
+    if (id === activeId) {
+      router.push('/chat')
+    }
+  }
 
   return (
     <aside className='conversation-sidebar'>
@@ -30,15 +40,74 @@ export default function ConversationSidebar() {
       <nav className='conversation-list'>
         {conversations.length === 0 && <p className='empty'>No conversations yet.</p>}
         {conversations.map(conv => (
-          <Link
+          <div
             key={conv.id}
-            href={`/chat/${conv.id}`}
             className={`conversation-item ${activeId === conv.id ? 'active' : ''}`}>
-            <span className='conv-title'>{conv.title}</span>
-            <span className='conv-level'>{conv.level}</span>
-          </Link>
+            <Link
+              href={`/chat/${conv.id}`}
+              className='conv-info'>
+              <span className='conv-title'>{conv.title}</span>
+              <span className='conv-level'>{conv.level}</span>
+            </Link>
+            <button
+              type='button'
+              className='conv-delete-btn'
+              aria-label='Apagar conversa'
+              onClick={() => setConversationToDelete(conv.id)}>
+              <svg
+                xmlns='http://www.w3.org/2000/svg'
+                width='14'
+                height='14'
+                viewBox='0 0 24 24'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='2'
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                aria-hidden='true'>
+                <polyline points='3 6 5 6 21 6' />
+                <path d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6' />
+                <path d='M10 11v6' />
+                <path d='M14 11v6' />
+                <path d='M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2' />
+              </svg>
+            </button>
+          </div>
         ))}
       </nav>
+
+      {conversationToDelete !== null && (
+        <div
+          className='delete-confirm-overlay'
+          role='dialog'
+          aria-modal='true'
+          aria-labelledby='delete-dialog-title'>
+          <div className='delete-confirm-dialog'>
+            <h3
+              id='delete-dialog-title'
+              className='delete-dialog-title'>
+              Apagar conversa
+            </h3>
+            <p className='delete-dialog-body'>
+              Tem certeza que deseja apagar esta conversa? Esta ação não pode ser desfeita.
+            </p>
+            <div className='delete-dialog-actions'>
+              <button
+                type='button'
+                className='delete-dialog-cancel'
+                onClick={() => setConversationToDelete(null)}>
+                Cancelar
+              </button>
+              <button
+                type='button'
+                className='delete-dialog-confirm'
+                onClick={() => handleDelete(conversationToDelete)}>
+                Apagar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className='sidebar-footer'>
         <button
           type='button'
