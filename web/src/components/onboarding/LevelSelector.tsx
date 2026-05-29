@@ -47,10 +47,13 @@ export default function LevelSelector() {
   const [selectedModel, setSelectedModel] = useState<string>('')
 
   useEffect(() => {
-    api.getModels().then(({ models, defaultModel }) => {
-      setModels(models)
-      setSelectedModel(defaultModel)
-    }).catch(console.error)
+    api
+      .getModels()
+      .then(({ models, defaultModel }) => {
+        setModels(models)
+        setSelectedModel(defaultModel)
+      })
+      .catch(console.error)
   }, [])
 
   async function handleStart() {
@@ -88,7 +91,7 @@ export default function LevelSelector() {
           <p style={{ marginBottom: '10px' }}>Select AI Model:</p>
           <select
             value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
+            onChange={e => setSelectedModel(e.target.value)}
             style={{
               width: '100%',
               padding: '12px',
@@ -96,11 +99,14 @@ export default function LevelSelector() {
               border: '1px solid #e2e8f0',
               backgroundColor: '#fff',
               fontSize: '1rem',
-              cursor: 'pointer'
-            }}
-          >
+              cursor: 'pointer',
+            }}>
             {models.map(model => (
-              <option key={model.id} value={model.id}>{model.name}</option>
+              <option
+                key={model.id}
+                value={model.id}>
+                {model.name}
+              </option>
             ))}
           </select>
         </div>
