@@ -2,11 +2,7 @@ import { Router } from 'express'
 
 import { itemController } from '../controllers/itemController.js'
 import { validateBody, validateParameters } from '../middlewares/validation.js'
-import {
-  createItemSchema,
-  itemIdParametersSchema,
-  updateItemSchema,
-} from '../schemas/item.schema.js'
+import { createItemSchema, itemIdParametersSchema, updateItemSchema } from '../schemas/item.schema.js'
 
 const router = Router()
 

@@ -1,7 +1,6 @@
 import { defineConfig } from 'drizzle-kit'
 
-const isIntegrationTest =
-  process.env.NODE_ENV === 'test' && process.env.RUN_INTEGRATION_TESTS === 'true'
+const isIntegrationTest = process.env.NODE_ENV === 'test' && process.env.RUN_INTEGRATION_TESTS === 'true'
 
 if (isIntegrationTest && !process.env.TEST_DATABASE_URL) {
   throw new Error('TEST_DATABASE_URL is required for integration tests')

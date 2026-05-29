@@ -26,10 +26,7 @@ export const chatService = {
         })
         .returning()
 
-      await tx
-        .update(conversations)
-        .set({ updatedAt: now })
-        .where(eq(conversations.id, input.conversationId))
+      await tx.update(conversations).set({ updatedAt: now }).where(eq(conversations.id, input.conversationId))
 
       return [message_]
     })
@@ -43,10 +40,7 @@ export const chatService = {
 
   async streamResponse(conversationId: string, userContent: string, res: Response): Promise<void> {
     // Fetch conversation
-    const [conversation] = await db
-      .select()
-      .from(conversations)
-      .where(eq(conversations.id, conversationId))
+    const [conversation] = await db.select().from(conversations).where(eq(conversations.id, conversationId))
 
     if (!conversation) {
       res.status(404).json({ error: 'Conversation not found' })

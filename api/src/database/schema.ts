@@ -1,14 +1,5 @@
 import { sql } from 'drizzle-orm'
-import {
-  check,
-  integer,
-  jsonb,
-  pgSequence,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from 'drizzle-orm/pg-core'
+import { check, integer, jsonb, pgSequence, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
 export const items = pgTable('items', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -32,9 +23,7 @@ export const conversations = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [
-    check('conversations_level_check', sql`${table.level} in ('A1', 'A2', 'B1', 'B2', 'C1', 'C2')`),
-  ],
+  table => [check('conversations_level_check', sql`${table.level} in ('A1', 'A2', 'B1', 'B2', 'C1', 'C2')`)],
 )
 
 export const messages = pgTable(

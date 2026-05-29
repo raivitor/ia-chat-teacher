@@ -15,9 +15,7 @@ interface ChatInterfaceProps {
 
 function dbMessageToUIMessage(msg: ConversationWithMessages['messages'][number]): UIMessage {
   const parts: UIMessage['parts'] =
-    msg.parts.length > 0
-      ? (msg.parts as UIMessage['parts'])
-      : [{ type: 'text' as const, text: msg.content }]
+    msg.parts.length > 0 ? (msg.parts as UIMessage['parts']) : [{ type: 'text' as const, text: msg.content }]
 
   return {
     id: msg.id,
@@ -42,8 +40,7 @@ function ContextUsage({ tokensUsed, contextWindow }: ContextUsageProps) {
   return (
     <div className='context-usage'>
       <div className='context-usage-label'>
-        Contexto: {formatNumber(tokensUsed)} / {formatNumber(contextWindow)} tokens (
-        {pct.toFixed(1)}%)
+        Contexto: {formatNumber(tokensUsed)} / {formatNumber(contextWindow)} tokens ({pct.toFixed(1)}%)
       </div>
       <div className='context-usage-bar-track'>
         <div

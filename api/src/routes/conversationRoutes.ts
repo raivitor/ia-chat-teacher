@@ -8,15 +8,7 @@ const conversationRouter = Router()
 
 conversationRouter.get('/', conversationController.list)
 conversationRouter.post('/', validateBody(createConversationSchema), conversationController.create)
-conversationRouter.get(
-  '/:id',
-  validateParameters(conversationIdSchema),
-  conversationController.getById,
-)
-conversationRouter.delete(
-  '/:id',
-  validateParameters(conversationIdSchema),
-  conversationController.delete,
-)
+conversationRouter.get('/:id', validateParameters(conversationIdSchema), conversationController.getById)
+conversationRouter.delete('/:id', validateParameters(conversationIdSchema), conversationController.delete)
 
 export default conversationRouter

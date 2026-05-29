@@ -3,8 +3,7 @@ services:
     image: postgres:18
     restart: always
     healthcheck:
-      test:
-        ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ai_chat_teacher}']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ai_chat_teacher}']
       interval: 5s
       timeout: 5s
       retries: 20

@@ -113,20 +113,14 @@ export default tseslint.config(
         { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
       ],
       '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/ban-ts-comment': [
-        'warn',
-        { 'ts-expect-error': 'allow-with-description' },
-      ],
+      '@typescript-eslint/ban-ts-comment': ['warn', { 'ts-expect-error': 'allow-with-description' }],
 
       // --- Regras Pesadas (CI Only) ---
       // Proteção vital para Express/Async handlers
       ...(isCI
         ? {
             '@typescript-eslint/no-floating-promises': 'error',
-            '@typescript-eslint/no-misused-promises': [
-              'error',
-              { checksVoidReturn: { attributes: false } },
-            ],
+            '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: { attributes: false } }],
             '@typescript-eslint/await-thenable': 'error',
           }
         : {}),

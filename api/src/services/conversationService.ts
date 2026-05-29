@@ -23,9 +23,7 @@ export const conversationService = {
     const now = new Date()
 
     const [conversation] = await db.transaction(async tx => {
-      const seqResult = await tx.execute(
-        sql`SELECT nextval(${conversationSeq.seqName}::regclass) AS seq`,
-      )
+      const seqResult = await tx.execute(sql`SELECT nextval(${conversationSeq.seqName}::regclass) AS seq`)
       const seq = Number((seqResult.rows[0] as { seq: string | number }).seq)
       const title = formatTitle(seq, now)
 
@@ -51,10 +49,7 @@ export const conversationService = {
   },
 
   async listConversations() {
-    return db
-      .select()
-      .from(conversations)
-      .orderBy(desc(conversations.createdAt), desc(conversations.seq))
+    return db.select().from(conversations).orderBy(desc(conversations.createdAt), desc(conversations.seq))
   },
 
   async getConversation(id: string) {
@@ -74,10 +69,7 @@ export const conversationService = {
   },
 
   async deleteConversation(id: string) {
-    const [deleted] = await db
-      .delete(conversations)
-      .where(eq(conversations.id, id))
-      .returning({ id: conversations.id })
+    const [deleted] = await db.delete(conversations).where(eq(conversations.id, id)).returning({ id: conversations.id })
     return deleted ?? null
   },
 }

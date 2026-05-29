@@ -2,12 +2,7 @@ import assert from 'node:assert/strict'
 import { before, beforeEach, test } from 'node:test'
 
 import { getResponseBody } from '../test/helpers/supertest.js'
-import {
-  api,
-  integrationDescribe,
-  prepareIntegrationSuite,
-  resetDatabase,
-} from '../test/setup/integration.js'
+import { api, integrationDescribe, prepareIntegrationSuite, resetDatabase } from '../test/setup/integration.js'
 
 type HealthcheckBody = {
   status: string

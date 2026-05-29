@@ -3,8 +3,7 @@ import pg from 'pg'
 
 import * as schema from './schema.js'
 
-const isIntegrationTest =
-  process.env.NODE_ENV === 'test' && process.env.RUN_INTEGRATION_TESTS === 'true'
+const isIntegrationTest = process.env.NODE_ENV === 'test' && process.env.RUN_INTEGRATION_TESTS === 'true'
 
 const connectionString =
   process.env.NODE_ENV === 'test'
@@ -13,9 +12,7 @@ const connectionString =
 
 if (!connectionString) {
   throw new Error(
-    isIntegrationTest
-      ? 'TEST_DATABASE_URL is not defined for integration tests'
-      : 'DATABASE_URL is not defined',
+    isIntegrationTest ? 'TEST_DATABASE_URL is not defined for integration tests' : 'DATABASE_URL is not defined',
   )
 }
 

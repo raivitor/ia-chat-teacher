@@ -32,10 +32,7 @@ test('resolveAllowedOrigins prioriza FRONTEND_URLS quando presente', () => {
     FRONTEND_URLS: 'https://frontend.example.com, http://localhost:3000',
   })
 
-  assert.deepStrictEqual([...allowedOrigins].toSorted(), [
-    'http://localhost:3000',
-    'https://frontend.example.com',
-  ])
+  assert.deepStrictEqual([...allowedOrigins].toSorted(), ['http://localhost:3000', 'https://frontend.example.com'])
 })
 
 test('resolveAllowedOrigins usa FRONTEND_URL quando FRONTEND_URLS esta vazio', () => {

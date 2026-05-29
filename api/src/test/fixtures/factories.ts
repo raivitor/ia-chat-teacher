@@ -15,8 +15,7 @@ export async function createItemFixture(
     .insert(items)
     .values({
       name: overrides.name ?? `Item Teste ${suffix}`,
-      description:
-        overrides.description === undefined ? `Descricao do item ${suffix}` : overrides.description,
+      description: overrides.description === undefined ? `Descricao do item ${suffix}` : overrides.description,
     })
     .returning({
       id: items.id,

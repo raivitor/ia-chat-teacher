@@ -2,12 +2,7 @@ import assert from 'node:assert/strict'
 import { before, beforeEach, test } from 'node:test'
 
 import { getResponseBody } from '../test/helpers/supertest.js'
-import {
-  api,
-  integrationDescribe,
-  prepareIntegrationSuite,
-  resetDatabase,
-} from '../test/setup/integration.js'
+import { api, integrationDescribe, prepareIntegrationSuite, resetDatabase } from '../test/setup/integration.js'
 
 type ConversationBody = {
   id: string
@@ -80,9 +75,7 @@ integrationDescribe('Route integration: conversations', () => {
     const created = getResponseBody<ConversationResponse>(createResponse).conversation
 
     const response = await api.get(`/api/conversations/${created.id}`)
-    const body = getResponseBody<{ conversation: ConversationBody & { messages: unknown[] } }>(
-      response,
-    )
+    const body = getResponseBody<{ conversation: ConversationBody & { messages: unknown[] } }>(response)
 
     assert.strictEqual(response.status, 200)
     assert.strictEqual(body.conversation.id, created.id)

@@ -3,12 +3,7 @@ import { before, beforeEach, test } from 'node:test'
 
 import { createItemFixture } from '../test/fixtures/factories.js'
 import { getResponseBody } from '../test/helpers/supertest.js'
-import {
-  api,
-  integrationDescribe,
-  prepareIntegrationSuite,
-  resetDatabase,
-} from '../test/setup/integration.js'
+import { api, integrationDescribe, prepareIntegrationSuite, resetDatabase } from '../test/setup/integration.js'
 
 type ValidationErrorBody = {
   message: string
@@ -124,9 +119,7 @@ integrationDescribe('Route integration: items', () => {
 
     assert.strictEqual(response.status, 400)
     assert.strictEqual(body.message, 'Dados inválidos')
-    assert.ok(
-      body.errors.some(error => error.includes('Informe ao menos um campo para atualização')),
-    )
+    assert.ok(body.errors.some(error => error.includes('Informe ao menos um campo para atualização')))
   })
 
   test('PUT /api/items/:id updates the item', async () => {

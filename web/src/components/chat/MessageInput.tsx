@@ -30,9 +30,7 @@ export default function MessageInput({ value, onChange, onSubmit, disabled }: Me
         onKeyDown={handleKeyDown}
         disabled={disabled}
         placeholder={
-          disabled
-            ? 'Waiting for response...'
-            : 'Type your message... (Enter to send, Shift+Enter for new line)'
+          disabled ? 'Waiting for response...' : 'Type your message... (Enter to send, Shift+Enter for new line)'
         }
         rows={3}
       />

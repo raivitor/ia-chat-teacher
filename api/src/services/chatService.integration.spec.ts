@@ -3,11 +3,7 @@ import { before, beforeEach, test } from 'node:test'
 
 import { chatService } from '../services/chatService.js'
 import { conversationService } from '../services/conversationService.js'
-import {
-  integrationDescribe,
-  prepareIntegrationSuite,
-  resetDatabase,
-} from '../test/setup/integration.js'
+import { integrationDescribe, prepareIntegrationSuite, resetDatabase } from '../test/setup/integration.js'
 
 integrationDescribe('Service integration: chatService', () => {
   before(async () => {

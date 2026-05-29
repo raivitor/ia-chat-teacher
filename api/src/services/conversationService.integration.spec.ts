@@ -2,11 +2,7 @@ import assert from 'node:assert/strict'
 import { before, beforeEach, test } from 'node:test'
 
 import { conversationService } from '../services/conversationService.js'
-import {
-  integrationDescribe,
-  prepareIntegrationSuite,
-  resetDatabase,
-} from '../test/setup/integration.js'
+import { integrationDescribe, prepareIntegrationSuite, resetDatabase } from '../test/setup/integration.js'
 
 integrationDescribe('Service integration: conversationService', () => {
   before(async () => {
@@ -49,10 +45,7 @@ integrationDescribe('Service integration: conversationService', () => {
   })
 
   test('createConversation rejects invalid level', async () => {
-    await assert.rejects(
-      () => conversationService.createConversation({ level: 'X9' }),
-      /Invalid level/,
-    )
+    await assert.rejects(() => conversationService.createConversation({ level: 'X9' }), /Invalid level/)
   })
 
   test('listConversations returns all conversations in descending order', async () => {
@@ -94,9 +87,7 @@ integrationDescribe('Service integration: conversationService', () => {
   })
 
   test('deleteConversation returns null for unknown id', async () => {
-    const result = await conversationService.deleteConversation(
-      '00000000-0000-0000-0000-000000000000',
-    )
+    const result = await conversationService.deleteConversation('00000000-0000-0000-0000-000000000000')
 
     assert.strictEqual(result, null)
   })
