@@ -47,16 +47,24 @@ Acesse `http://localhost:3000` — você será redirecionado para a tela de onbo
 2. Gere uma API key em **Settings → Keys**
 3. Defina `OPENROUTER_API_KEY=sua-chave` em `api/.env`
 
-## Trocar o modelo LLM
+## Estratégia LLM
 
-Edite `api/src/lib/ai/config.ts` e altere `DEFAULT_MODEL`:
+O backend usa OpenRouter via Vercel AI SDK com:
 
-```ts
-export const DEFAULT_MODEL = 'google/gemma-3-27b-it:free'
-// Troque por qualquer modelo disponível no OpenRouter, ex:
-// 'anthropic/claude-3-haiku'
-// 'openai/gpt-4o-mini'
+- roteamento por menor latência (`provider.sort = "latency"`);
+- fallback de provedores habilitado (`allow_fallbacks = true`);
+- fallback real entre modelos com `deepseek/deepseek-v4-flash` como modelo pago recomendado;
+- `session_id` por conversa para favorecer cache contextual;
+- reasoning desativado no chat normal (`effort = "none"`);
+- usage accounting habilitado para registrar tokens, cache, reasoning e custo quando o OpenRouter retornar esses dados.
+
+Por padrão, desenvolvimento local usa um modelo free tier para reduzir custo. Em produção, o padrão passa a ser `deepseek/deepseek-v4-flash`. Para sobrescrever em qualquer ambiente, defina:
+
+```bash
+OPENROUTER_DEFAULT_MODEL=deepseek/deepseek-v4-flash
 ```
+
+O endpoint `GET /api/models` expõe `defaultModel`, `fallbackModel`, `productionRecommendedModel` e `contextWindow` para o frontend.
 
 ## Testes
 
@@ -81,4 +89,3 @@ npm run typecheck --prefix api
 npm run lint --prefix web
 npm run typecheck --prefix web
 ```
-

@@ -1,8 +1,12 @@
-export const DEFAULT_MODEL = 'google/gemma-4-31b-it:free'
+export const DEVELOPMENT_DEFAULT_MODEL = 'google/gemma-4-31b-it:free'
+export const PRODUCTION_RECOMMENDED_MODEL = 'deepseek/deepseek-v4-flash'
 
-// Paid fallback — use when the free-tier model is unavailable or for production environments
-// that require guaranteed uptime without depending on free tier availability.
-export const FALLBACK_MODEL = 'deepseek/deepseek-v4-flash'
+// Paid fallback: use when the primary model or its routed providers are unavailable.
+export const FALLBACK_MODEL = PRODUCTION_RECOMMENDED_MODEL
+
+export const DEFAULT_MODEL =
+  process.env.OPENROUTER_DEFAULT_MODEL ??
+  (process.env.NODE_ENV === 'production' ? PRODUCTION_RECOMMENDED_MODEL : DEVELOPMENT_DEFAULT_MODEL)
 
 export const AVAILABLE_MODELS = [
   { id: 'google/gemma-4-31b-it:free', name: 'Gemma 4 (31B) - Free', contextWindow: 262_144 },

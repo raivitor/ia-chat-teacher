@@ -115,13 +115,23 @@ export default function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const contextWindow = conversation ? (modelsMap[conversation.model] ?? null) : null
   const tokensUsed = (() => {
     if (!conversation) return 0
-    const lastAssistant = [...conversation.messages].reverse().find(m => m.role === 'assistant')
-    if (!lastAssistant?.metadata?.usage) return 0
-    const { inputTokens = 0, outputTokens = 0 } = lastAssistant.metadata.usage as {
-      inputTokens?: number
-      outputTokens?: number
-    }
-    return inputTokens + outputTokens
+    return conversation.messages
+      .filter(m => m.role === 'assistant')
+      .reduce((total, message) => {
+        if (!message.metadata?.usage) return total
+
+        const {
+          inputTokens = 0,
+          outputTokens = 0,
+          totalTokens,
+        } = message.metadata.usage as {
+          inputTokens?: number
+          outputTokens?: number
+          totalTokens?: number
+        }
+
+        return total + (totalTokens ?? inputTokens + outputTokens)
+      }, 0)
   })()
 
   async function handleSubmit() {

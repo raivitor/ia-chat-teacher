@@ -5,9 +5,14 @@ import type { Response } from 'express'
 import { db } from '../database/client.js'
 import { conversations, messages } from '../database/schema.js'
 import { getChatModel } from '../lib/ai/client.js'
-import { DEFAULT_GENERATION_PARAMS } from '../lib/ai/config.js'
+import { DEFAULT_GENERATION_PARAMS, FALLBACK_MODEL } from '../lib/ai/config.js'
+import { buildOpenRouterProviderOptions } from '../lib/ai/openrouterOptions.js'
+import { mapLanguageModelUsage } from '../lib/ai/usageMetadata.js'
+import { logger } from '../lib/observability/logger.js'
 import { loadPrompt } from '../lib/prompts/loader.js'
 import type { CreateMessageInput } from '../types/message.js'
+
+const NORMAL_FINISH_REASONS = new Set(['stop'])
 
 export const chatService = {
   async saveMessage(input: CreateMessageInput) {
@@ -77,31 +82,43 @@ export const chatService = {
       { role: 'user', content: userContent },
     ]
 
-    const model = getChatModel(conversation.model)
+    const requestedModel = conversation.model
+    const model = getChatModel(requestedModel)
+    const providerOptions = buildOpenRouterProviderOptions({
+      conversationId,
+      primaryModel: requestedModel,
+      fallbackModel: FALLBACK_MODEL,
+      includeUsage: true,
+    })
 
     const startTime = Date.now()
+    let ttftMs: number | undefined
 
     const result = streamText({
       model,
       ...(systemPrompt ? { system: systemPrompt } : {}),
       messages: modelMessages,
       ...DEFAULT_GENERATION_PARAMS,
-      providerOptions: {
-        openrouter: {
-          // Sticky routing: keeps requests on the same provider instance to maximize cache hits
-          session_id: conversationId,
-          // Prefer lowest-latency provider; allow fallback between providers for the same model
-          provider: {
-            sort: 'latency',
-            allow_fallbacks: true,
-          },
-          // Disable reasoning tokens for normal chat — non-think mode reduces output tokens,
-          // latency and cost
-          reasoning: { effort: 'none' },
-        },
+      providerOptions,
+      onChunk: ({ chunk }) => {
+        if (ttftMs === undefined && (chunk.type === 'text-delta' || chunk.type === 'reasoning-delta')) {
+          ttftMs = Date.now() - startTime
+        }
       },
-      onFinish: async ({ text, finishReason, usage }) => {
+      onError: ({ error }) => {
+        logger.error('llm.stream.error', {
+          conversationId,
+          level: conversation.level,
+          requestedModel,
+          fallbackModel: FALLBACK_MODEL,
+          latencyMs: Date.now() - startTime,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      },
+      onFinish: async ({ text, finishReason, totalUsage, providerMetadata, model: responseModel }) => {
         const latencyMs = Date.now() - startTime
+        const usage = mapLanguageModelUsage(totalUsage)
+        const openrouterUsage = providerMetadata?.openrouter?.usage
 
         await chatService.saveMessage({
           conversationId,
@@ -110,16 +127,40 @@ export const chatService = {
           parts: [{ type: 'text', text }],
           metadata: {
             finishReason,
-            usage: {
-              inputTokens: usage?.inputTokens ?? 0,
-              outputTokens: usage?.outputTokens ?? 0,
-              cacheReadTokens: usage?.inputTokenDetails?.cacheReadTokens ?? 0,
-              cacheWriteTokens: usage?.inputTokenDetails?.cacheWriteTokens ?? 0,
-            },
+            usage,
             latencyMs,
-            model: conversation.model,
+            ...(ttftMs === undefined ? {} : { ttftMs }),
+            requestedModel,
+            fallbackModel: FALLBACK_MODEL,
+            model: responseModel.modelId,
+            provider: responseModel.provider,
+            ...(openrouterUsage ? { providerMetadata: { openrouter: { usage: openrouterUsage } } } : {}),
           },
         })
+
+        logger.info('llm.stream.finish', {
+          conversationId,
+          level: conversation.level,
+          requestedModel,
+          fallbackModel: FALLBACK_MODEL,
+          model: responseModel.modelId,
+          provider: responseModel.provider,
+          finishReason,
+          latencyMs,
+          ttftMs,
+          ...usage,
+          ...(openrouterUsage ? { openrouterUsage } : {}),
+        })
+
+        if (!NORMAL_FINISH_REASONS.has(finishReason)) {
+          logger.warn('llm.stream.abnormal_finish', {
+            conversationId,
+            requestedModel,
+            fallbackModel: FALLBACK_MODEL,
+            model: responseModel.modelId,
+            finishReason,
+          })
+        }
       },
     })
 

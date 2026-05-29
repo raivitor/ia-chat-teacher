@@ -33,11 +33,19 @@ export interface AIModel {
   contextWindow: number
 }
 
+export interface ModelsResponse {
+  models: AIModel[]
+  defaultModel: string
+  fallbackModel: string
+  productionRecommendedModel: string
+  contextWindow: number | null
+}
+
 export const api = {
-  async getModels(): Promise<{ models: AIModel[]; defaultModel: string }> {
+  async getModels(): Promise<ModelsResponse> {
     const res = await fetch(`${API_URL}/api/models`)
     if (!res.ok) throw new Error('Failed to fetch models')
-    return res.json() as Promise<{ models: AIModel[]; defaultModel: string }>
+    return res.json() as Promise<ModelsResponse>
   },
 
   async listConversations(): Promise<Conversation[]> {
