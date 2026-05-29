@@ -54,6 +54,9 @@ Analise cuidadosamente os materiais abaixo antes de escrever o guia:
 * https://www.promptingguide.ai/techniques/cot
 * https://www.promptingguide.ai/techniques/react
 * https://www.promptingguide.ai/applications/context-caching
+* https://www.promptingguide.ai/techniques/meta-prompting
+* https://www.promptingguide.ai/techniques/consistency
+* https://www.promptingguide.ai/techniques/knowledge
 * https://openrouter.ai/docs/guides/best-practices/latency-and-performance
 * https://openrouter.ai/docs/guides/best-practices/prompt-caching
 * https://openrouter.ai/docs/guides/best-practices/uptime-optimization
@@ -68,16 +71,41 @@ Analise cuidadosamente os materiais abaixo antes de escrever o guia:
 
 Analise as referências e produza um documento que responda às seguintes perguntas:
 
-1. Quais técnicas de prompting são realmente úteis para este caso de uso?
-2. Quais técnicas devem ser evitadas?
-3. Como estruturar um bom System Prompt para DeepSeek-V4-Flash?
-4. Como reduzir custo e consumo de contexto?
-5. Como aproveitar Context Caching?
-6. Como manter consistência entre múltiplas conversas?
-7. Como definir regras sem tornar o prompt excessivamente longo?
-8. Como construir prompts fáceis de manter ao longo do tempo?
-9. Como separar comportamento global de comportamento específico por nível?
-10. Como criar exemplos Few-Shot eficientes para ensino de idiomas?
+
+# O que quero que você faça
+
+Analise as referências e produza um documento que responda às seguintes perguntas:
+
+1.  Quais técnicas de prompting são realmente úteis para este caso de uso?
+2.  Quais técnicas devem ser evitadas ou usadas com cuidado?
+3.  Como estruturar um bom System Prompt para DeepSeek-V4-Flash?
+4.  Como adaptar os prompts para usuários A1, A2, B1, B2, C1 e C2?
+5.  Como separar instruções globais de instruções específicas por nível?
+6.  Como criar prompts fáceis de manter dentro da pasta `api/prompts`?
+7.  Como reduzir custo, latência e consumo de contexto?
+8.  Como aproveitar Prompt Caching e Context Caching?
+9.  Como manter estabilidade e uptime usando OpenRouter?
+10.  Como escolher configurações de rota/modelo no OpenRouter para reduzir falhas?
+11.  Como lidar com reasoning tokens sem desperdiçar orçamento?
+12.  Como usar Few-Shot Examples para ensino de inglês?
+13.  Como usar Chain of Thought sem expor raciocínio interno ao usuário?
+14.  Como avaliar se ReAct faz sentido ou não para este projeto?
+15.  Como usar Meta-Prompting para melhorar ou revisar os prompts?
+16.  Como usar técnicas de Consistency para tornar as respostas mais previsíveis?
+17.  Como usar Knowledge Prompting sem transformar o prompt em uma base de conhecimento gigante?
+18.  Como definir regras pedagógicas para correção de escrita em inglês?
+19.  Como equilibrar conversa natural, correção de erros e incentivo ao usuário?
+20.  Como criar um padrão de resposta consistente para feedback linguístico?
+21.  Como evitar que o modelo corrija demais e atrapalhe a conversa?
+22.  Como definir limites de vocabulário, gramática e complexidade por nível?
+23.  Como manter o modelo falando principalmente em inglês, mas explicando em português quando necessário?
+24.  Como organizar exemplos, regras e templates para maximizar cache hit?
+25.  Como versionar e evoluir os prompts com segurança ao longo do tempo?
+26.  Quais métricas devem ser usadas para avaliar a qualidade dos prompts?
+27.  Quais testes manuais ou automatizados devem ser criados para validar os prompts?
+28.  Quais anti-padrões de prompting devem ser evitados neste projeto?
+29.  Qual deve ser o template base recomendado para os System Prompts?
+30.  Qual checklist deve ser usado antes de aprovar qualquer novo prompt?
 
 ---
 
