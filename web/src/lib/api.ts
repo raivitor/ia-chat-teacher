@@ -30,6 +30,7 @@ export interface ConversationWithMessages extends Conversation {
 export interface AIModel {
   id: string
   name: string
+  contextWindow: number
 }
 
 export const api = {

@@ -401,6 +401,40 @@ button {
 }
 
 /* ============================================================
+   Context Usage Indicator
+   ============================================================ */
+.context-usage {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-6) var(--space-1);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.context-usage-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+.context-usage-bar-track {
+  height: 3px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.context-usage-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition:
+    width 0.4s ease,
+    background-color 0.4s ease;
+}
+
+/* ============================================================
    Message List
    ============================================================ */
 .message-list {

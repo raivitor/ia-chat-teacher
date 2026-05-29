@@ -3,9 +3,9 @@
 import type { UIMessage } from 'ai'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-import { api, type ConversationWithMessages } from '../../lib/api'
+import { api, type AIModel, type ConversationWithMessages } from '../../lib/api'
 import MessageInput from './MessageInput'
 import MessageList from './MessageList'
 
@@ -26,18 +26,53 @@ function dbMessageToUIMessage(msg: ConversationWithMessages['messages'][number])
   }
 }
 
+function formatNumber(n: number): string {
+  return n.toLocaleString('pt-BR')
+}
+
+interface ContextUsageProps {
+  tokensUsed: number
+  contextWindow: number
+}
+
+function ContextUsage({ tokensUsed, contextWindow }: ContextUsageProps) {
+  const pct = Math.min((tokensUsed / contextWindow) * 100, 100)
+  const color = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#22c55e'
+
+  return (
+    <div className='context-usage'>
+      <div className='context-usage-label'>
+        Contexto: {formatNumber(tokensUsed)} / {formatNumber(contextWindow)} tokens (
+        {pct.toFixed(1)}%)
+      </div>
+      <div className='context-usage-bar-track'>
+        <div
+          className='context-usage-bar-fill'
+          style={{ width: `${pct}%`, backgroundColor: color }}
+        />
+      </div>
+    </div>
+  )
+}
+
 export default function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const [inputValue, setInputValue] = useState('')
+  const [conversation, setConversation] = useState<ConversationWithMessages | null>(null)
+  const [modelsMap, setModelsMap] = useState<Record<string, number>>({})
+  const prevStatusRef = useRef<string>('')
 
   useEffect(() => {
-    api
-      .getConversation(conversationId)
-      .then(conversation => {
-        const uiMessages = conversation.messages
-          .filter(m => m.role !== 'system')
-          .map(dbMessageToUIMessage)
+    void Promise.all([api.getConversation(conversationId), api.getModels()])
+      .then(([conv, { models }]) => {
+        const map: Record<string, number> = {}
+        models.forEach((m: AIModel) => {
+          map[m.id] = m.contextWindow
+        })
+        setModelsMap(map)
+        setConversation(conv)
+        const uiMessages = conv.messages.filter(m => m.role !== 'system').map(dbMessageToUIMessage)
         setInitialMessages(uiMessages)
       })
       .catch(() => {
@@ -67,7 +102,30 @@ export default function ChatInterface({ conversationId }: ChatInterfaceProps) {
     }),
   })
 
+  // Refetch conversation after streaming ends to get updated token counts
+  useEffect(() => {
+    if (prevStatusRef.current === 'streaming' && status === 'ready') {
+      api
+        .getConversation(conversationId)
+        .then(setConversation)
+        .catch(() => undefined)
+    }
+    prevStatusRef.current = status
+  }, [status, conversationId])
+
   const isActive = status === 'submitted' || status === 'streaming'
+
+  const contextWindow = conversation ? (modelsMap[conversation.model] ?? null) : null
+  const tokensUsed = (() => {
+    if (!conversation) return 0
+    const lastAssistant = [...conversation.messages].reverse().find(m => m.role === 'assistant')
+    if (!lastAssistant?.metadata?.usage) return 0
+    const { inputTokens = 0, outputTokens = 0 } = lastAssistant.metadata.usage as {
+      inputTokens?: number
+      outputTokens?: number
+    }
+    return inputTokens + outputTokens
+  })()
 
   async function handleSubmit() {
     if (!inputValue.trim() || isActive) return
@@ -84,6 +142,12 @@ export default function ChatInterface({ conversationId }: ChatInterfaceProps) {
         messages={messages}
         isStreaming={status === 'streaming'}
       />
+      {contextWindow !== null && tokensUsed > 0 && (
+        <ContextUsage
+          tokensUsed={tokensUsed}
+          contextWindow={contextWindow}
+        />
+      )}
       <MessageInput
         value={inputValue}
         onChange={setInputValue}

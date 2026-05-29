@@ -1,10 +1,18 @@
 export const DEFAULT_MODEL = 'google/gemma-4-31b-it:free'
 
 export const AVAILABLE_MODELS = [
-  { id: 'google/gemma-4-31b-it:free', name: 'Gemma 4 (31B) - Free' },
-  { id: 'deepseek/deepseek-v4-flash:free', name: 'DeepSeek V4 Flash - Free' },
-  { id: 'google/gemma-4-26b-a4b-it:free', name: 'Gemma 4 (26B A4B) - Free' },
-  { id: 'deepseek/deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
+  { id: 'google/gemma-4-31b-it:free', name: 'Gemma 4 (31B) - Free', contextWindow: 262_144 },
+  {
+    id: 'deepseek/deepseek-v4-flash:free',
+    name: 'DeepSeek V4 Flash - Free',
+    contextWindow: 1_048_576,
+  },
+  {
+    id: 'google/gemma-4-26b-a4b-it:free',
+    name: 'Gemma 4 (26B A4B) - Free',
+    contextWindow: 262_144,
+  },
+  { id: 'deepseek/deepseek-v4-flash', name: 'DeepSeek V4 Flash', contextWindow: 1_048_576 },
 ]
 
 export const DEFAULT_GENERATION_PARAMS = {
