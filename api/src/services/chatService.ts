@@ -86,6 +86,20 @@ export const chatService = {
       ...(systemPrompt ? { system: systemPrompt } : {}),
       messages: modelMessages,
       ...DEFAULT_GENERATION_PARAMS,
+      providerOptions: {
+        openrouter: {
+          // Sticky routing: keeps requests on the same provider instance to maximize cache hits
+          session_id: conversationId,
+          // Prefer lowest-latency provider; allow fallback between providers for the same model
+          provider: {
+            sort: 'latency',
+            allow_fallbacks: true,
+          },
+          // Disable reasoning tokens for normal chat — non-think mode reduces output tokens,
+          // latency and cost
+          reasoning: { effort: 'none' },
+        },
+      },
       onFinish: async ({ text, finishReason, usage }) => {
         const latencyMs = Date.now() - startTime
 
@@ -99,6 +113,8 @@ export const chatService = {
             usage: {
               inputTokens: usage?.inputTokens ?? 0,
               outputTokens: usage?.outputTokens ?? 0,
+              cacheReadTokens: usage?.inputTokenDetails?.cacheReadTokens ?? 0,
+              cacheWriteTokens: usage?.inputTokenDetails?.cacheWriteTokens ?? 0,
             },
             latencyMs,
             model: conversation.model,
