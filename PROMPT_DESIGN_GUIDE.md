@@ -1,9 +1,7 @@
 # Guia de Design de System Prompts - ia-chat-teacher
 
-> **Versao:** 1.1
-> **Data:** 29 de maio de 2026  
-> **Modelo-alvo:** DeepSeek-V4-Flash via OpenRouter
-> **Stack atual:** Vercel AI SDK + `@openrouter/ai-sdk-provider`
+> **Versao:** 2.0
+> **Data:** 29 de maio de 2026
 > **Contexto:** pratica de escrita em ingles com usuarios CEFR A1-C2
 
 ---
@@ -13,48 +11,47 @@
 1. [Introducao](#introducao)
 2. [Fontes Verificadas](#fontes-verificadas)
 3. [Objetivos dos System Prompts](#objetivos-dos-system-prompts)
-4. [Caracteristicas do DeepSeek-V4-Flash](#caracteristicas-do-deepseek-v4-flash)
-5. [Arquitetura Recomendada dos Prompts](#arquitetura-recomendada-dos-prompts)
-6. [Estrutura Base de um System Prompt](#estrutura-base-de-um-system-prompt)
-7. [Estrategias de Ensino de Ingles](#estrategias-de-ensino-de-ingles)
-8. [Adaptacao por Nivel A1-C2](#adaptacao-por-nivel-a1-c2)
-9. [Tecnicas de Prompting](#tecnicas-de-prompting)
-10. [Context Caching e Prompt Caching](#context-caching-e-prompt-caching)
-11. [Otimizacao de Tokens, Custo e Latencia](#otimizacao-de-tokens-custo-e-latencia)
-12. [OpenRouter: Uptime, Roteamento e Fallbacks](#openrouter-uptime-roteamento-e-fallbacks)
-13. [Reasoning Tokens](#reasoning-tokens)
-14. [Boas Praticas de Manutencao](#boas-praticas-de-manutencao)
-15. [Metricas e Testes](#metricas-e-testes)
-16. [Anti-Padroes](#anti-padroes)
-17. [Template Base Recomendado](#template-base-recomendado)
-18. [Checklist para Revisao de Prompts](#checklist-para-revisao-de-prompts)
-19. [Exemplos Ilustrativos de System Prompts](#exemplos-ilustrativos-de-system-prompts)
+4. [Arquitetura Recomendada dos Prompts](#arquitetura-recomendada-dos-prompts)
+5. [Estrutura Base de um System Prompt](#estrutura-base-de-um-system-prompt)
+6. [Estrategias de Ensino de Ingles](#estrategias-de-ensino-de-ingles)
+7. [Adaptacao por Nivel A1-C2](#adaptacao-por-nivel-a1-c2)
+8. [Tecnicas de Prompting](#tecnicas-de-prompting)
+9. [Orcamento de Tokens por Secao](#orcamento-de-tokens-por-secao)
+10. [Boas Praticas de Manutencao](#boas-praticas-de-manutencao)
+11. [Metricas de Qualidade Pedagogica](#metricas-de-qualidade-pedagogica)
+12. [Testes Manuais por Nivel](#testes-manuais-por-nivel)
+13. [Anti-Padroes](#anti-padroes)
+14. [Template Base Recomendado](#template-base-recomendado)
+15. [Checklist para Revisao de Prompts](#checklist-para-revisao-de-prompts)
+16. [Exemplos Ilustrativos de System Prompts](#exemplos-ilustrativos-de-system-prompts)
 
 ---
 
 ## Introducao
 
-Este documento e a referencia oficial para criar e revisar os system prompts em `api/prompts/`.
+Este documento e a referencia para criar, revisar e evoluir os system prompts em `api/prompts/`.
 Cada arquivo (`A1.md`, `A2.md`, `B1.md`, `B2.md`, `C1.md`, `C2.md`) define o comportamento
 do tutor de escrita em ingles para um nivel CEFR selecionado no onboarding.
+
+O leitor deste documento deve conseguir criar ou modificar prompts sem precisar conhecer detalhes
+tecnicos da plataforma. Para informacoes sobre o modelo, caching, latencia, custo e roteamento,
+consulte `LLM_OPERATIONS_GUIDE.md`.
 
 O guia prioriza recomendacoes praticas para o produto atual:
 
 - conversa natural em ingles;
 - adaptacao de vocabulario, gramatica, tamanho e tom por nivel;
 - correcao util sem interromper o fluxo da conversa;
-- prompts pequenos, estaveis e faceis de versionar;
-- uso conservador de recursos caros, especialmente reasoning tokens;
-- compatibilidade com OpenRouter e Vercel AI SDK.
+- prompts pequenos, estaveis e faceis de versionar.
 
-Quando uma tecnica teorica entra em conflito com custo, latencia, previsibilidade ou manutencao,
-este guia prioriza o que e mais seguro para o produto.
+Quando uma tecnica teorica entra em conflito com previsibilidade, manutencao ou qualidade
+pedagogica, este guia prioriza o que e mais seguro para o produto.
 
 ---
 
 ## Fontes Verificadas
 
-As recomendacoes abaixo foram revisadas contra estas fontes enviadas em `tarefa2.md`:
+As recomendacoes de prompting foram revisadas contra estas fontes:
 
 - Prompting Guide: [Optimizing Prompts](https://www.promptingguide.ai/guides/optimizing-prompts)
 - Prompting Guide: [Few-Shot Prompting](https://www.promptingguide.ai/techniques/fewshot)
@@ -64,23 +61,8 @@ As recomendacoes abaixo foram revisadas contra estas fontes enviadas em `tarefa2
 - Prompting Guide: [Meta Prompting](https://www.promptingguide.ai/techniques/meta-prompting)
 - Prompting Guide: [Self-Consistency](https://www.promptingguide.ai/techniques/consistency)
 - Prompting Guide: [Generated Knowledge Prompting](https://www.promptingguide.ai/techniques/knowledge)
-- OpenRouter: [Latency and Performance](https://openrouter.ai/docs/guides/best-practices/latency-and-performance)
-- OpenRouter: [Prompt Caching](https://openrouter.ai/docs/guides/best-practices/prompt-caching)
-- OpenRouter: [Uptime Optimization](https://openrouter.ai/docs/guides/best-practices/uptime-optimization)
-- OpenRouter: [Reasoning Tokens](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens)
-- DeepSeek: [DeepSeek-V4 release notes](https://api-docs.deepseek.com/news/news260424)
-- Hugging Face: [DeepSeek-V4-Flash model card](https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash)
-- Local PDF: `DeepSeek_V4.pdf`
 
-Correcao importante aplicada nesta versao: o documento anterior acertava a direcao geral,
-mas misturava tres camadas diferentes:
-
-- fatos do paper/model card do DeepSeek-V4;
-- comportamento da API oficial DeepSeek;
-- parametros aceitos pelo OpenRouter e pelo provider do Vercel AI SDK.
-
-Este guia separa essas camadas para evitar instrucoes que parecam garantidas, mas dependam do
-provedor, do modelo roteado ou da biblioteca usada.
+Para fontes sobre o modelo e infraestrutura, veja a secao de referencias em `LLM_OPERATIONS_GUIDE.md`.
 
 ---
 
@@ -101,64 +83,12 @@ Cada system prompt deve fazer o modelo:
 
 ---
 
-## Caracteristicas do DeepSeek-V4-Flash
-
-### O que e seguro afirmar
-
-Segundo o paper/local PDF e o model card, DeepSeek-V4-Flash e um modelo MoE da serie
-DeepSeek-V4:
-
-| Caracteristica | Valor ou observacao |
-|---|---|
-| Arquitetura | Mixture-of-Experts (MoE) |
-| Parametros totais | 284B |
-| Parametros ativados por token | 13B |
-| Contexto | ate 1 milhao de tokens |
-| Precisao dos pesos | combinacao FP4/FP8 no release publicado |
-| Forca principal | eficiencia em contexto longo com custo menor que modelos densos equivalentes |
-
-Para este produto, a janela de 1M tokens nao deve ser tratada como convite para prompts longos.
-Contexto longo e util para historico e documentos futuros, mas system prompts pequenos continuam
-melhores para latencia, custo, revisao humana e cache.
-
-### Modos de raciocinio
-
-O paper/model card descreve tres modos de esforco:
-
-| Modo no paper | Uso tipico | Recomendacao para este app |
-|---|---|---|
-| Non-think | respostas rapidas e rotineiras | padrao para chat de pratica de escrita |
-| Think High | analise logica mais lenta | evitar no fluxo normal; usar apenas em recurso explicito de explicacao |
-| Think Max | raciocinio maximo, com instrucao especial | nao usar no system prompt base |
-
-A API oficial DeepSeek tambem documenta controles de thinking/non-thinking e `reasoning_effort`
-para `high` ou `max`. Isso nao significa que o prompt base deva pedir raciocinio profundo.
-Para um chat pedagogico, reasoning aumenta tokens de saida, tempo ate a resposta e risco de
-respostas analiticas demais.
-
-**Regra para o projeto:** escrever os prompts para funcionamento em modo non-thinking. Se uma
-feature futura precisar de analise gramatical detalhada, ative reasoning na chamada daquela
-feature, nao no system prompt global. Quando a API/provedor expuser um toggle de thinking e o
-padrao for thinking habilitado, desabilite-o em runtime para o chat comum em vez de tentar
-resolver isso por texto no prompt.
-
-### Compatibilidade de API
-
-O produto atual usa OpenRouter via Vercel AI SDK. Portanto:
-
-- trate OpenRouter como a camada operacional principal;
-- use IDs de modelo definidos em `api/src/lib/ai/config.ts`;
-- nao copie exemplos de SDKs diferentes sem adaptar para `streamText`;
-- parametros especificos do OpenRouter devem ser enviados por `providerOptions.openrouter`
-  ou por `extraBody` no model/provider, conforme suportado pelo provider instalado.
-
----
-
 ## Arquitetura Recomendada dos Prompts
 
 ### Principio central: prefixo estavel
 
-Prompt caching depende de prefixos repetidos. Portanto, a ordem recomendada e:
+Para que o sistema possa reutilizar prefixos de contexto (veja detalhes em `LLM_OPERATIONS_GUIDE.md`),
+a ordem recomendada e:
 
 ```text
 [system prompt estavel]
@@ -175,8 +105,21 @@ Prompt caching depende de prefixos repetidos. Portanto, a ordem recomendada e:
 ```
 
 O system prompt deve conter o que permanece estavel por muitas requisicoes. Dados dinamicos
-como data, nome do usuario, metas da sessao, erros recorrentes e estado da conversa devem ficar
-fora do system prompt fixo.
+devem ficar fora do system prompt fixo.
+
+### O que nao colocar no system prompt
+
+Nao inclua no system prompt fixo:
+
+- data atual;
+- nome do usuario;
+- ID do usuario;
+- estatisticas da sessao;
+- lista de erros recorrentes atualizada a cada turno;
+- objetivo temporario da conversa;
+- resultado de testes A/B.
+
+Esses dados devem entrar em camada dinamica, depois do prefixo estavel.
 
 ### Separacao global vs. por nivel
 
@@ -198,8 +141,7 @@ Bloco especifico do nivel
   - exemplos few-shot
 ```
 
-Isso facilita revisao manual, reduz divergencias acidentais e melhora a chance de cache em
-prefixos comuns, desde que o bloco global realmente seja identico.
+Isso facilita revisao manual e reduz divergencias acidentais entre os arquivos de nivel.
 
 ### Arquivos finais
 
@@ -214,7 +156,7 @@ api/prompts/C1.md
 api/prompts/C2.md
 ```
 
-Este guia nao implementa os prompts finais. Ele define o padrao para cria-los depois.
+Este guia nao implementa os prompts finais. Ele define o padrao para cria-los.
 
 ---
 
@@ -400,8 +342,8 @@ Diretrizes:
 **Adequacao:** limitada.
 
 Chain-of-thought explicito e util em problemas de raciocinio, mas nao deve aparecer nas respostas
-do tutor. Para pratica de escrita, ele aumenta latencia, custo e risco de uma resposta parecer
-mecanica.
+do tutor. Para pratica de escrita, ele produz respostas longas que parecem mecanicas e interrompem
+o fluxo da conversa.
 
 Recomendacao:
 
@@ -495,75 +437,10 @@ base da conversa.
 
 ---
 
-## Context Caching e Prompt Caching
+## Orcamento de Tokens por Secao
 
-### DeepSeek Context Caching
-
-DeepSeek documenta context caching automatico. A ideia central e reutilizar prefixos de contexto
-ja processados. Isso beneficia system prompts e historicos repetidos, mas nao deve ser tratado
-como garantia absoluta de cache hit.
-
-Regras praticas:
-
-- prefixos identicos sao mais provaveis de serem reutilizados;
-- qualquer mudanca antes do trecho estavel reduz a chance de cache;
-- cache pode ter tempo de construcao e expiracao;
-- cache e otimizacao de custo/latencia, nao contrato funcional.
-
-### OpenRouter Prompt Caching
-
-OpenRouter descreve caching automatico para alguns provedores/modelos e sticky routing para
-melhorar cache hits. Para DeepSeek, o cache write e documentado como cobranca normal de input;
-cache read usa um multiplicador/preco especifico do provider/modelo. Consulte a pagina de
-pricing vigente antes de estimar economia exata.
-
-Recomendacao para o produto:
-
-- deixar o system prompt estavel e repetido;
-- passar historico em ordem cronologica;
-- manter `system` antes das mensagens dinamicas;
-- usar `session_id` por conversa quando estiver usando OpenRouter;
-- registrar uso e custo quando a API devolver metadata suficiente.
-
-### Exemplo com Vercel AI SDK
-
-O projeto usa `streamText`, portanto o exemplo correto deve seguir o provider instalado:
-
-```ts
-const result = streamText({
-  model,
-  system: systemPrompt,
-  messages: modelMessages,
-  providerOptions: {
-    openrouter: {
-      session_id: conversationId,
-    },
-  },
-})
-```
-
-Se um parametro OpenRouter nao for aceito pelo provider ou pelo modelo, remova-o e prefira a
-configuracao mais simples. Nao dependa de um exemplo REST se o codigo real usa Vercel AI SDK.
-
-### O que nao colocar no system prompt
-
-Nao inclua no system prompt fixo:
-
-- data atual;
-- nome do usuario;
-- ID do usuario;
-- estatisticas da sessao;
-- lista de erros recorrentes atualizada a cada turno;
-- objetivo temporario da conversa;
-- resultado de testes A/B.
-
-Esses dados devem entrar em camada dinamica, depois do prefixo estavel.
-
----
-
-## Otimizacao de Tokens, Custo e Latencia
-
-### Orcamento recomendado
+Este e o tamanho alvo para cada secao do system prompt. E uma meta pragmatica para guiar
+autores de prompts, nao um limite tecnico.
 
 | Secao | Tamanho alvo |
 |---|---|
@@ -575,110 +452,16 @@ Esses dados devem entrar em camada dinamica, depois do prefixo estavel.
 | Few-shot examples | 180-420 tokens |
 | Total inicial por nivel | 600-1.100 tokens |
 
-Esse tamanho e uma meta pragmatica, nao limite tecnico. DeepSeek-V4-Flash tem contexto enorme,
-mas prompts menores continuam mais faceis de revisar, testar e manter.
-
-### Principios
+Principios de escrita para manter o orcamento:
 
 - Use imperativos diretos: "Respond in English" em vez de "You should try to respond in English".
 - Remova regras que repetem a mesma ideia.
 - Prefira listas curtas a paragrafos longos.
 - Evite exemplos longos.
-- Nao inclua tabela CEFR inteira dentro de cada prompt final; cada arquivo precisa apenas do seu nivel.
+- Nao inclua a tabela CEFR inteira dentro de cada prompt final; cada arquivo precisa apenas do seu nivel.
 - Escreva o system prompt final em ingles, porque ele define comportamento linguistico do tutor.
 
-### Medicao pratica
-
-Use uma contagem aproximada antes de aprovar prompts finais:
-
-```bash
-python -c "from pathlib import Path; print(len(Path('api/prompts/A1.md').read_text().split()))"
-```
-
-Para estimativa de tokens mais realista, use o tokenizer disponivel no stack escolhido. A contagem
-exata pode variar por modelo/provedor.
-
----
-
-## OpenRouter: Uptime, Roteamento e Fallbacks
-
-OpenRouter pode rotear uma mesma solicitacao entre provedores e permite ajustes de fallback,
-ordenacao e parametros de provider. Isso deve ser configurado no codigo de chamada, nao no
-system prompt.
-
-### Recomendacoes
-
-1. **Defina um modelo primario e fallbacks.**
-   Para producao, nao dependa de uma variante gratuita como unico caminho.
-
-2. **Use `models` quando aceitar fallback entre modelos.**
-   Um fallback deve preservar comportamento pedagogico. Evite cair em modelos muito diferentes
-   sem testar os prompts.
-
-3. **Use `provider` para preferencias operacionais.**
-   Ordenacao por latencia, throughput ou preco pode ser util, mas deve ser validada com logs.
-
-4. **Use `require_parameters` quando depender de parametros especificos.**
-   Se a chamada exige `response_format`, tools ou reasoning, nao deixe OpenRouter rotear para
-   provedor que ignora esses parametros.
-
-5. **Monitore quedas e degradacao.**
-   Salve modelo usado, latencia, finish reason, tokens e erros de API.
-
-### Exemplo conceitual
-
-```ts
-const result = streamText({
-  model,
-  system: systemPrompt,
-  messages: modelMessages,
-  providerOptions: {
-    openrouter: {
-      session_id: conversationId,
-      provider: {
-        sort: 'latency',
-        allow_fallbacks: true,
-      },
-    },
-  },
-})
-```
-
-Valide os campos aceitos contra a versao instalada do provider antes de commitar. O objetivo do
-guide e orientar a decisao; a implementacao deve ser testada no codigo real.
-
----
-
-## Reasoning Tokens
-
-Reasoning tokens sao tokens gastos pelo modelo antes da resposta final. Eles podem melhorar
-problemas de matematica, planejamento e analise complexa, mas sao desperdicio para a maioria
-dos turnos de pratica de escrita.
-
-### Politica para este app
-
-| Caso | Reasoning |
-|---|---|
-| Conversa normal | desativado ou nao solicitado |
-| Correcao curta | desativado |
-| Usuario pede "explain this grammar rule" | opcional, baixo/medio |
-| Analise de texto longo C1-C2 | opcional, com limite |
-| Chat A1-A2 | evitar |
-
-### Diretrizes
-
-- Nao coloque "think deeply", "show your reasoning" ou "reason step by step" no system prompt base.
-- Nao use Think Max para conversa normal.
-- Se usar reasoning em recurso especifico, limite tokens e monitore latencia.
-- Nunca exponha reasoning interno ao usuario.
-- Prefira respostas finais claras, curtas e pedagogicas.
-
-### Observacao sobre DeepSeek e OpenRouter
-
-Na API oficial DeepSeek, thinking/non-thinking e `reasoning_effort` sao controles de chamada.
-No OpenRouter, a disponibilidade e o formato de parametros de reasoning variam por modelo e
-provedor. Portanto, trate reasoning como configuracao de runtime validada por teste, nao como
-instrucao textual no prompt.
+Para medir o tamanho real de um prompt antes de aprova-lo, consulte `LLM_OPERATIONS_GUIDE.md`.
 
 ---
 
@@ -714,7 +497,7 @@ Use versionamento semantico simples:
 
 - patch: ajuste de wording sem mudanca comportamental esperada;
 - minor: mudanca de exemplos, formato ou intensidade de correcao;
-- major: mudanca de metodologia pedagogica ou modelo-alvo.
+- major: mudanca de metodologia pedagogica.
 
 ### Revisao com meta-prompt
 
@@ -723,9 +506,9 @@ precisa checar se a recomendacao automatica faz sentido pedagogico e operacional
 
 ---
 
-## Metricas e Testes
+## Metricas de Qualidade Pedagogica
 
-### Metricas de qualidade pedagogica
+Use estas metricas para avaliar se os prompts estao cumprindo seu papel educacional:
 
 - taxa de respostas em ingles quando o usuario escreve em portugues;
 - taxa de perguntas de continuidade no final;
@@ -736,18 +519,11 @@ precisa checar se a recomendacao automatica faz sentido pedagogico e operacional
 - comprimento medio da resposta por nivel;
 - progresso do usuario: tamanho medio das mensagens, retorno ao app, sessoes completas.
 
-### Metricas operacionais
+Para metricas operacionais (latencia, custo, tokens, fallback), consulte `LLM_OPERATIONS_GUIDE.md`.
 
-- tempo ate primeiro token;
-- latencia total;
-- input tokens e output tokens;
-- cache reads/writes quando disponiveis na metadata;
-- custo por conversa;
-- taxa de erro por modelo/provedor;
-- taxa de fallback;
-- finish reasons anormais.
+---
 
-### Testes manuais obrigatorios por nivel
+## Testes Manuais por Nivel
 
 Para cada prompt, teste pelo menos:
 
@@ -759,15 +535,6 @@ Para cada prompt, teste pelo menos:
 6. Usuario escrevendo acima do nivel declarado.
 7. Usuario escrevendo abaixo do nivel declarado.
 8. Conversa de 5 turnos para verificar consistencia.
-
-### Testes automatizados recomendados
-
-- golden conversations por nivel;
-- snapshots de formato de resposta;
-- avaliador LLM offline para CEFR match e over-correction;
-- teste de tamanho maximo de prompt;
-- teste que garante estrutura comum entre `A1.md` a `C2.md`;
-- logging de uso para validar custo e latencia em ambiente real.
 
 ---
 
@@ -785,9 +552,9 @@ Problema: o usuario se sente em prova e escreve menos.
 
 Prefira limite explicito de correcoes por turno.
 
-### CoT ou Think Max no system prompt base
+### CoT ou raciocinio explicito no system prompt base
 
-Problema: aumenta custo, latencia e probabilidade de respostas longas.
+Problema: produz respostas longas e mecanicas que quebram o fluxo da conversa.
 
 Prefira processo interno curto e resposta final direta.
 
@@ -936,15 +703,6 @@ Assistant: [NATURAL_RESPONSE_WITHOUT_INVENTED_CORRECTION]
 - [ ] Knowledge no prompt e compacto?
 - [ ] Meta-prompting foi usado apenas no processo de revisao?
 
-### Operacao
-
-- [ ] Prompt dentro do orcamento de tamanho?
-- [ ] Estavel o suficiente para caching?
-- [ ] Funciona com `streamText` e OpenRouter?
-- [ ] Reasoning nao e ativado no fluxo normal?
-- [ ] O modelo default/configurado no codigo corresponde ao modelo-alvo de producao?
-- [ ] Logs capturam modelo, tokens, latencia e erros?
-
 ### Testes
 
 - [ ] Golden conversations passaram?
@@ -952,6 +710,8 @@ Assistant: [NATURAL_RESPONSE_WITHOUT_INVENTED_CORRECTION]
 - [ ] Mensagens sem erro testadas?
 - [ ] Usuario em portugues testado?
 - [ ] Conversa de 5 turnos testada?
+
+Para o checklist operacional (caching, reasoning, latencia, modelo, logs), consulte `LLM_OPERATIONS_GUIDE.md`.
 
 ---
 
@@ -1064,5 +824,5 @@ Assistant: That's a balanced point of view. Which side feels stronger to you: th
 
 ---
 
-Este guia deve ser revisado sempre que o modelo-alvo, o provider OpenRouter, a biblioteca do AI SDK
-ou a estrategia pedagogica do produto mudar.
+Este guia deve ser revisado sempre que a estrategia pedagogica do produto mudar.
+Para mudancas de modelo, provider ou infraestrutura, veja `LLM_OPERATIONS_GUIDE.md`.
