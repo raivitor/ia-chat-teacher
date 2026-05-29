@@ -17,5 +17,6 @@ export interface ConversationWithMessages extends Conversation {
 
 export interface CreateConversationInput {
   level: string
+  model?: string
   metadata?: Record<string, unknown>
 }

@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const createConversationSchema = z
   .object({
     level: z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']),
+    model: z.string().optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
   })
   .strict()

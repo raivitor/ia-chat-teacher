@@ -34,7 +34,7 @@ export const conversationService = {
         .values({
           seq,
           level: input.level,
-          model: DEFAULT_MODEL,
+          model: input.model ?? DEFAULT_MODEL,
           title,
           metadata: input.metadata ?? {},
           createdAt: now,

@@ -27,7 +27,18 @@ export interface ConversationWithMessages extends Conversation {
   messages: Message[]
 }
 
+export interface AIModel {
+  id: string
+  name: string
+}
+
 export const api = {
+  async getModels(): Promise<{ models: AIModel[]; defaultModel: string }> {
+    const res = await fetch(`${API_URL}/api/models`)
+    if (!res.ok) throw new Error('Failed to fetch models')
+    return res.json() as Promise<{ models: AIModel[]; defaultModel: string }>
+  },
+
   async listConversations(): Promise<Conversation[]> {
     const res = await fetch(`${API_URL}/api/conversations`)
     if (!res.ok) throw new Error('Failed to fetch conversations')
@@ -35,11 +46,11 @@ export const api = {
     return data.conversations
   },
 
-  async createConversation(level: Level): Promise<Conversation> {
+  async createConversation(level: Level, model?: string): Promise<Conversation> {
     const res = await fetch(`${API_URL}/api/conversations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ level }),
+      body: JSON.stringify({ level, model }),
     })
     if (!res.ok) throw new Error('Failed to create conversation')
     const data = (await res.json()) as { conversation: Conversation }

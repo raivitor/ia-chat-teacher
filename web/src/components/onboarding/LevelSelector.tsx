@@ -1,9 +1,9 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-import { api, type Level } from '../../lib/api'
+import { api, type Level, type AIModel } from '../../lib/api'
 
 const LEVELS: { value: Level; label: string; description: string }[] = [
   { value: 'A1', label: 'A1 — Beginner', description: 'You know a few basic words and phrases.' },
@@ -43,13 +43,22 @@ export default function LevelSelector() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [models, setModels] = useState<AIModel[]>([])
+  const [selectedModel, setSelectedModel] = useState<string>('')
+
+  useEffect(() => {
+    api.getModels().then(({ models, defaultModel }) => {
+      setModels(models)
+      setSelectedModel(defaultModel)
+    }).catch(console.error)
+  }, [])
 
   async function handleStart() {
     setLoading(true)
     setError(null)
     try {
       localStorage.setItem(LEVEL_STORAGE_KEY, selected)
-      const conversation = await api.createConversation(selected)
+      const conversation = await api.createConversation(selected, selectedModel || undefined)
       router.push(`/chat/${conversation.id}`)
     } catch {
       setError('Failed to start conversation. Please try again.')
@@ -73,6 +82,30 @@ export default function LevelSelector() {
           </button>
         ))}
       </div>
+
+      {models.length > 0 && (
+        <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+          <p style={{ marginBottom: '10px' }}>Select AI Model:</p>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#fff',
+              fontSize: '1rem',
+              cursor: 'pointer'
+            }}
+          >
+            {models.map(model => (
+              <option key={model.id} value={model.id}>{model.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {error && <p className='error'>{error}</p>}
       <button
         className='start-btn'
