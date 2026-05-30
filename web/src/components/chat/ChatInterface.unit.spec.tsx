@@ -52,6 +52,7 @@ const baseConversation = {
   id: 'conv-1',
   seq: 1,
   level: 'B1',
+  profile: 'professor' as const,
   model: 'model-a',
   title: 'Test chat',
   metadata: {},

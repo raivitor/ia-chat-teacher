@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 
-import { api, type Level, type AIModel } from '../../lib/api'
+import { api, type Level, type Profile, type AIModel } from '../../lib/api'
 
 const LEVELS: { value: Level; label: string; description: string }[] = [
   { value: 'A1', label: 'A1 — Beginner', description: 'You know a few basic words and phrases.' },
@@ -30,22 +30,35 @@ const LEVELS: { value: Level; label: string; description: string }[] = [
   { value: 'C2', label: 'C2 — Proficient', description: 'You have mastered the language.' },
 ]
 
+const PROFILES: { value: Profile; label: string; description: string }[] = [
+  { value: 'professor', label: 'Professor', description: 'Structured lessons with clear explanations.' },
+  { value: 'bestfriend', label: 'Best Friend', description: 'Casual and playful, like texting a friend.' },
+  { value: 'secretary', label: 'Secretary', description: 'Professional and precise, business-focused.' },
+  { value: 'girlfriend', label: 'Girlfriend', description: 'Warm and encouraging, personal touch.' },
+]
+
 const LEVEL_STORAGE_KEY = 'preferredLevel'
+const PROFILE_STORAGE_KEY = 'preferredProfile'
 
 export default function LevelSelector() {
   const router = useRouter()
   const [selected, setSelected] = useState<Level>('B1')
+  const [selectedProfile, setSelectedProfile] = useState<Profile>('professor')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [models, setModels] = useState<AIModel[]>([])
   const [selectedModel, setSelectedModel] = useState<string>('')
 
+  /* eslint-disable react-hooks/set-state-in-effect */
+  // Intentional: reads localStorage once after mount to avoid SSR hydration mismatch
   useEffect(() => {
     const stored = localStorage.getItem(LEVEL_STORAGE_KEY)
-    if (stored && LEVELS.some(l => l.value === stored)) {
-      setSelected(stored as Level)
-    }
+    if (stored && LEVELS.some(l => l.value === stored)) setSelected(stored as Level)
+
+    const storedProfile = localStorage.getItem(PROFILE_STORAGE_KEY)
+    if (storedProfile && PROFILES.some(p => p.value === storedProfile)) setSelectedProfile(storedProfile as Profile)
   }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     api
@@ -62,7 +75,8 @@ export default function LevelSelector() {
     setError(null)
     try {
       localStorage.setItem(LEVEL_STORAGE_KEY, selected)
-      const conversation = await api.createConversation(selected, selectedModel || undefined)
+      localStorage.setItem(PROFILE_STORAGE_KEY, selectedProfile)
+      const conversation = await api.createConversation(selected, selectedModel || undefined, selectedProfile)
       router.push(`/chat/${conversation.id}`)
     } catch {
       setError('Failed to start conversation. Please try again.')
@@ -83,6 +97,20 @@ export default function LevelSelector() {
             type='button'>
             <span className='level-name'>{level.label}</span>
             <span className='level-desc'>{level.description}</span>
+          </button>
+        ))}
+      </div>
+
+      <p style={{ marginTop: '24px', marginBottom: '10px' }}>Choose your conversation style:</p>
+      <div className='levels'>
+        {PROFILES.map(profile => (
+          <button
+            key={profile.value}
+            className={`level-card ${selectedProfile === profile.value ? 'selected' : ''}`}
+            onClick={() => setSelectedProfile(profile.value)}
+            type='button'>
+            <span className='level-name'>{profile.label}</span>
+            <span className='level-desc'>{profile.description}</span>
           </button>
         ))}
       </div>

@@ -1,6 +1,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
 export type Level = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
+export type Profile = 'professor' | 'bestfriend' | 'secretary' | 'girlfriend'
 
 export interface Message {
   id: string
@@ -16,6 +17,7 @@ export interface Conversation {
   id: string
   seq: number
   level: string
+  profile: Profile
   model: string
   title: string
   metadata: Record<string, unknown>
@@ -55,11 +57,11 @@ export const api = {
     return data.conversations
   },
 
-  async createConversation(level: Level, model?: string): Promise<Conversation> {
+  async createConversation(level: Level, model?: string, profile?: Profile): Promise<Conversation> {
     const res = await fetch(`${API_URL}/api/conversations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ level, model }),
+      body: JSON.stringify({ level, model, profile }),
     })
     if (!res.ok) throw new Error('Failed to create conversation')
     const data = (await res.json()) as { conversation: Conversation }
