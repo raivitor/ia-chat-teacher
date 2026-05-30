@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2025",
     "lib": ["dom", "ES2025"],
-    "types": ["node"],
+    "types": ["node", "vitest/globals", "@testing-library/jest-dom"],
     "noUncheckedSideEffectImports": true,
     "allowJs": true,
     "skipLibCheck": true,

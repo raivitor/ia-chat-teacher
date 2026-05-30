@@ -13,7 +13,7 @@ interface ChatInterfaceProps {
   conversationId: string
 }
 
-function dbMessageToUIMessage(msg: ConversationWithMessages['messages'][number]): UIMessage {
+export function dbMessageToUIMessage(msg: ConversationWithMessages['messages'][number]): UIMessage {
   const parts: UIMessage['parts'] =
     msg.parts.length > 0 ? (msg.parts as UIMessage['parts']) : [{ type: 'text' as const, text: msg.content }]
 
@@ -24,7 +24,7 @@ function dbMessageToUIMessage(msg: ConversationWithMessages['messages'][number])
   }
 }
 
-function formatNumber(n: number): string {
+export function formatNumber(n: number): string {
   return n.toLocaleString('pt-BR')
 }
 
@@ -33,7 +33,7 @@ interface ContextUsageProps {
   contextWindow: number
 }
 
-function ContextUsage({ tokensUsed, contextWindow }: ContextUsageProps) {
+export function ContextUsage({ tokensUsed, contextWindow }: ContextUsageProps) {
   const pct = Math.min((tokensUsed / contextWindow) * 100, 100)
   const color = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#22c55e'
 
