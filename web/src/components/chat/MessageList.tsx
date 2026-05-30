@@ -25,6 +25,20 @@ export default function MessageList({ messages, isStreaming }: MessageListProps)
               if (part.type === 'text') {
                 return <p key={i}>{part.text}</p>
               }
+              if (
+                part.type.startsWith('tool-') &&
+                'state' in part &&
+                (part.state === 'input-available' || part.state === 'input-streaming')
+              ) {
+                const query = (part as { input?: { query?: string } }).input?.query
+                return (
+                  <p
+                    key={i}
+                    className='tool-searching'>
+                    🔍 Searching: {query ?? '...'}
+                  </p>
+                )
+              }
               return null
             })}
           </div>

@@ -8,6 +8,7 @@ export interface Conversation {
   model: string
   title: string
   metadata: Record<string, unknown>
+  webSearchEnabled: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -21,4 +22,5 @@ export interface CreateConversationInput {
   profile?: string
   model?: string
   metadata?: Record<string, unknown>
+  webSearchEnabled?: boolean
 }

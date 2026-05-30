@@ -42,6 +42,7 @@ beforeEach(() => {
     model: 'model-a',
     title: 'New',
     metadata: {},
+    webSearchEnabled: false,
     createdAt: '',
     updatedAt: '',
   })
@@ -112,7 +113,7 @@ describe('LevelSelector', () => {
     await userEvent.click(screen.getByRole('button', { name: /Start Conversation/ }))
 
     await waitFor(() => {
-      expect(api.createConversation).toHaveBeenCalledWith('A1', 'model-a', 'professor')
+      expect(api.createConversation).toHaveBeenCalledWith('A1', 'model-a', 'professor', false)
       expect(mockPush).toHaveBeenCalledWith('/chat/new-conv')
     })
   })
@@ -153,6 +154,7 @@ describe('LevelSelector', () => {
             model: 'model-a',
             title: 'New',
             metadata: {},
+            webSearchEnabled: false,
             createdAt: '',
             updatedAt: '',
           })

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { check, integer, jsonb, pgSequence, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { boolean, check, integer, jsonb, pgSequence, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
 export const items = pgTable('items', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -21,6 +21,7 @@ export const conversations = pgTable(
     model: text('model').notNull(),
     title: text('title').notNull(),
     metadata: jsonb('metadata').notNull().default('{}'),
+    webSearchEnabled: boolean('web_search_enabled').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },

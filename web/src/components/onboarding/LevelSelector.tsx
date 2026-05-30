@@ -39,6 +39,7 @@ const PROFILES: { value: Profile; label: string; description: string }[] = [
 
 const LEVEL_STORAGE_KEY = 'preferredLevel'
 const PROFILE_STORAGE_KEY = 'preferredProfile'
+const WEB_SEARCH_STORAGE_KEY = 'webSearchEnabled'
 
 export default function LevelSelector() {
   const router = useRouter()
@@ -48,6 +49,7 @@ export default function LevelSelector() {
   const [error, setError] = useState<string | null>(null)
   const [models, setModels] = useState<AIModel[]>([])
   const [selectedModel, setSelectedModel] = useState<string>('')
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false)
 
   /* eslint-disable react-hooks/set-state-in-effect */
   // Intentional: reads localStorage once after mount to avoid SSR hydration mismatch
@@ -57,6 +59,9 @@ export default function LevelSelector() {
 
     const storedProfile = localStorage.getItem(PROFILE_STORAGE_KEY)
     if (storedProfile && PROFILES.some(p => p.value === storedProfile)) setSelectedProfile(storedProfile as Profile)
+
+    const storedWebSearch = localStorage.getItem(WEB_SEARCH_STORAGE_KEY)
+    if (storedWebSearch !== null) setWebSearchEnabled(storedWebSearch === 'true')
   }, [])
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -76,7 +81,13 @@ export default function LevelSelector() {
     try {
       localStorage.setItem(LEVEL_STORAGE_KEY, selected)
       localStorage.setItem(PROFILE_STORAGE_KEY, selectedProfile)
-      const conversation = await api.createConversation(selected, selectedModel || undefined, selectedProfile)
+      localStorage.setItem(WEB_SEARCH_STORAGE_KEY, String(webSearchEnabled))
+      const conversation = await api.createConversation(
+        selected,
+        selectedModel || undefined,
+        selectedProfile,
+        webSearchEnabled,
+      )
       router.push(`/chat/${conversation.id}`)
     } catch {
       setError('Failed to start conversation. Please try again.')
@@ -140,6 +151,34 @@ export default function LevelSelector() {
           </select>
         </div>
       )}
+
+      <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            cursor: 'pointer',
+            padding: '14px 16px',
+            borderRadius: '8px',
+            border: `1px solid ${webSearchEnabled ? '#6366f1' : '#e2e8f0'}`,
+            backgroundColor: webSearchEnabled ? '#eef2ff' : '#fff',
+            userSelect: 'none',
+          }}>
+          <input
+            type='checkbox'
+            checked={webSearchEnabled}
+            onChange={e => setWebSearchEnabled(e.target.checked)}
+            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+          />
+          <span>
+            <strong>Web Search</strong>
+            <span style={{ display: 'block', fontSize: '0.85rem', color: '#64748b' }}>
+              Allow the coach to search the web for up-to-date information
+            </span>
+          </span>
+        </label>
+      </div>
 
       {error && <p className='error'>{error}</p>}
       <button

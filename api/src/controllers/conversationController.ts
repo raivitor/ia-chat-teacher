@@ -19,6 +19,7 @@ export const conversationController = {
       ...(body.profile ? { profile: body.profile } : {}),
       ...(body.model ? { model: body.model } : {}),
       metadata: body.metadata ?? {},
+      webSearchEnabled: body.webSearchEnabled ?? false,
     })
     return res.status(201).json({ conversation })
   },

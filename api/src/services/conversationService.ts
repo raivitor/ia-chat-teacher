@@ -42,6 +42,7 @@ export const conversationService = {
           model: input.model ?? DEFAULT_MODEL,
           title,
           metadata: input.metadata ?? {},
+          webSearchEnabled: input.webSearchEnabled ?? false,
           createdAt: now,
           updatedAt: now,
         })

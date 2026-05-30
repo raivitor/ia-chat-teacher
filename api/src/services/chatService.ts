@@ -7,6 +7,7 @@ import { conversations, messages } from '../database/schema.js'
 import { getChatModel } from '../lib/ai/client.js'
 import { DEFAULT_GENERATION_PARAMS, FALLBACK_MODEL } from '../lib/ai/config.js'
 import { buildOpenRouterProviderOptions } from '../lib/ai/openrouterOptions.js'
+import { webSearchTool } from '../lib/ai/tools/webSearch.js'
 import { mapLanguageModelUsage } from '../lib/ai/usageMetadata.js'
 import { logger } from '../lib/observability/logger.js'
 import { loadPrompt } from '../lib/prompts/loader.js'
@@ -94,11 +95,14 @@ export const chatService = {
     const startTime = Date.now()
     let ttftMs: number | undefined
 
+    const tools = conversation.webSearchEnabled ? { webSearch: webSearchTool } : undefined
+
     const result = streamText({
       model,
       ...(systemPrompt ? { system: systemPrompt } : {}),
       messages: modelMessages,
       ...DEFAULT_GENERATION_PARAMS,
+      ...(tools ? { tools, maxSteps: 5 } : {}),
       providerOptions,
       onChunk: ({ chunk }) => {
         if (ttftMs === undefined && (chunk.type === 'text-delta' || chunk.type === 'reasoning-delta')) {

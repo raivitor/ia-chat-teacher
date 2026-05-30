@@ -38,6 +38,7 @@ const conv1 = {
   model: 'model-a',
   title: 'First conversation',
   metadata: {},
+  webSearchEnabled: false,
   createdAt: '',
   updatedAt: '',
 }
@@ -50,6 +51,7 @@ const conv2 = {
   model: 'model-a',
   title: 'Second conversation',
   metadata: {},
+  webSearchEnabled: false,
   createdAt: '',
   updatedAt: '',
 }

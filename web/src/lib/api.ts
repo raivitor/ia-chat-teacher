@@ -21,6 +21,7 @@ export interface Conversation {
   model: string
   title: string
   metadata: Record<string, unknown>
+  webSearchEnabled: boolean
   createdAt: string
   updatedAt: string
 }
@@ -57,11 +58,16 @@ export const api = {
     return data.conversations
   },
 
-  async createConversation(level: Level, model?: string, profile?: Profile): Promise<Conversation> {
+  async createConversation(
+    level: Level,
+    model?: string,
+    profile?: Profile,
+    webSearchEnabled?: boolean,
+  ): Promise<Conversation> {
     const res = await fetch(`${API_URL}/api/conversations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ level, model, profile }),
+      body: JSON.stringify({ level, model, profile, webSearchEnabled }),
     })
     if (!res.ok) throw new Error('Failed to create conversation')
     const data = (await res.json()) as { conversation: Conversation }

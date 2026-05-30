@@ -6,6 +6,7 @@ export const createConversationSchema = z
     profile: z.enum(['professor', 'bestfriend', 'secretary', 'girlfriend']).optional(),
     model: z.string().optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
+    webSearchEnabled: z.boolean().optional().default(false),
   })
   .strict()
 

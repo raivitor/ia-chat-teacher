@@ -56,6 +56,7 @@ const baseConversation = {
   model: 'model-a',
   title: 'Test chat',
   metadata: {},
+  webSearchEnabled: false,
   createdAt: '',
   updatedAt: '',
   messages: [],
