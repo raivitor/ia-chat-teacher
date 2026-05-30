@@ -115,23 +115,25 @@ export default function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const contextWindow = conversation ? (modelsMap[conversation.model] ?? null) : null
   const tokensUsed = (() => {
     if (!conversation) return 0
-    return conversation.messages
-      .filter(m => m.role === 'assistant')
-      .reduce((total, message) => {
-        if (!message.metadata?.usage) return total
+    // Use the last assistant message's totalTokens as the context usage indicator.
+    // Each call sends the full conversation history, so the most recent message's
+    // inputTokens already reflects the entire accumulated context. Summing across
+    // all messages would double-count earlier turns.
+    const lastAssistantWithUsage = conversation.messages.filter(m => m.role === 'assistant' && m.metadata?.usage).at(-1)
 
-        const {
-          inputTokens = 0,
-          outputTokens = 0,
-          totalTokens,
-        } = message.metadata.usage as {
-          inputTokens?: number
-          outputTokens?: number
-          totalTokens?: number
-        }
+    if (!lastAssistantWithUsage?.metadata?.usage) return 0
 
-        return total + (totalTokens ?? inputTokens + outputTokens)
-      }, 0)
+    const {
+      inputTokens = 0,
+      outputTokens = 0,
+      totalTokens,
+    } = lastAssistantWithUsage.metadata.usage as {
+      inputTokens?: number
+      outputTokens?: number
+      totalTokens?: number
+    }
+
+    return totalTokens ?? inputTokens + outputTokens
   })()
 
   async function handleSubmit() {
