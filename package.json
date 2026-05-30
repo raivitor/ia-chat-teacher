@@ -7,8 +7,14 @@
     "ci:api": "npm run validate --prefix api",
     "ci:web": "npm run validate --prefix web",
     "ci:simulate": "npm run ci:api && npm run ci:web",
+    "lint:fix:api": "npm run lint:fix --prefix api",
+    "lint:fix:web": "npm run lint:fix --prefix web",
+    "lint:fix:all": "npm run lint:fix:api && npm run lint:fix:web",
     "format:api": "npm run format:fix --prefix api",
     "format:web": "npm run format:fix --prefix web",
-    "format:all": "npm run format:api && npm run format:web"
+    "format:all": "npm run format:api && npm run format:web",
+    "run:api": "npm run dev --prefix api",
+    "run:web": "npm run dev --prefix web",
+    "run:all": "npm run run:api & npm run run:web"
   }
 }
