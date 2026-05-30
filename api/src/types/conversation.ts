@@ -4,6 +4,7 @@ export interface Conversation {
   id: string
   seq: number
   level: string
+  profile: string
   model: string
   title: string
   metadata: Record<string, unknown>
@@ -17,6 +18,7 @@ export interface ConversationWithMessages extends Conversation {
 
 export interface CreateConversationInput {
   level: string
+  profile?: string
   model?: string
   metadata?: Record<string, unknown>
 }

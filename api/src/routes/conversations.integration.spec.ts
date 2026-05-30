@@ -8,6 +8,7 @@ type ConversationBody = {
   id: string
   seq: number
   level: string
+  profile: string
   model: string
   title: string
   metadata: Record<string, unknown>
@@ -36,7 +37,22 @@ integrationDescribe('Route integration: conversations', () => {
     assert.strictEqual(response.status, 201)
     assert.ok(body.conversation.id)
     assert.strictEqual(body.conversation.level, 'B1')
+    assert.strictEqual(body.conversation.profile, 'professor')
     assert.match(body.conversation.title, /^Conversa \d+ - \d{2}\/\d{2} - \d{2}:\d{2}$/)
+  })
+
+  test('POST /api/conversations returns 201 with explicit profile', async () => {
+    const response = await api.post('/api/conversations').send({ level: 'A2', profile: 'bestfriend' })
+    const body = getResponseBody<ConversationResponse>(response)
+
+    assert.strictEqual(response.status, 201)
+    assert.strictEqual(body.conversation.profile, 'bestfriend')
+  })
+
+  test('POST /api/conversations returns 400 for invalid profile', async () => {
+    const response = await api.post('/api/conversations').send({ level: 'B1', profile: 'robot' })
+
+    assert.strictEqual(response.status, 400)
   })
 
   test('POST /api/conversations returns 400 for invalid level', async () => {

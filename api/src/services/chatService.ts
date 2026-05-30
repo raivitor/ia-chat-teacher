@@ -60,7 +60,7 @@ export const chatService = {
       .orderBy(asc(messages.createdAt))
 
     // Load system prompt
-    const systemPrompt = await loadPrompt(conversation.level)
+    const systemPrompt = await loadPrompt(conversation.level, conversation.profile)
 
     // Save user message first
     await chatService.saveMessage({

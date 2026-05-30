@@ -17,13 +17,20 @@ export const conversations = pgTable(
     id: uuid('id').defaultRandom().primaryKey(),
     seq: integer('seq').notNull().unique(),
     level: text('level').notNull(),
+    profile: text('profile').notNull().default('professor'),
     model: text('model').notNull(),
     title: text('title').notNull(),
     metadata: jsonb('metadata').notNull().default('{}'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [check('conversations_level_check', sql`${table.level} in ('A1', 'A2', 'B1', 'B2', 'C1', 'C2')`)],
+  table => [
+    check('conversations_level_check', sql`${table.level} in ('A1', 'A2', 'B1', 'B2', 'C1', 'C2')`),
+    check(
+      'conversations_profile_check',
+      sql`${table.profile} in ('professor', 'bestfriend', 'secretary', 'girlfriend')`,
+    ),
+  ],
 )
 
 export const messages = pgTable(

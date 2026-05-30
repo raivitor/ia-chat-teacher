@@ -15,6 +15,13 @@
       "when": 1780010320609,
       "tag": "0001_dusty_black_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1780146450094,
+      "tag": "0002_add_profile_to_conversations",
+      "breakpoints": true
     }
   ]
 }

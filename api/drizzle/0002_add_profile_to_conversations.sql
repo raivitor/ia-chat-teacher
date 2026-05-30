@@ -1,0 +1,2 @@
+ALTER TABLE "conversations" ADD COLUMN "profile" text DEFAULT 'professor' NOT NULL;--> statement-breakpoint
+ALTER TABLE "conversations" ADD CONSTRAINT "conversations_profile_check" CHECK ("conversations"."profile" in ('professor', 'bestfriend', 'secretary', 'girlfriend'));

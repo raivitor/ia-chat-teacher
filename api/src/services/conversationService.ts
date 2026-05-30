@@ -5,6 +5,7 @@ import { conversations, conversationSeq, messages } from '../database/schema.js'
 import { DEFAULT_MODEL } from '../lib/ai/config.js'
 import type { CreateConversationInput } from '../types/conversation.js'
 import { isValidLevel } from '../types/level.js'
+import { DEFAULT_PROFILE, isValidProfile } from '../types/profile.js'
 
 function formatTitle(seq: number, date: Date): string {
   const day = String(date.getDate()).padStart(2, '0')
@@ -20,6 +21,11 @@ export const conversationService = {
       throw new Error(`Invalid level: "${input.level}". Must be one of A1, A2, B1, B2, C1, C2.`)
     }
 
+    const profile = input.profile ?? DEFAULT_PROFILE
+    if (!isValidProfile(profile)) {
+      throw new Error(`Invalid profile: "${profile}". Must be one of professor, bestfriend, secretary, girlfriend.`)
+    }
+
     const now = new Date()
 
     const [conversation] = await db.transaction(async tx => {
@@ -32,6 +38,7 @@ export const conversationService = {
         .values({
           seq,
           level: input.level,
+          profile,
           model: input.model ?? DEFAULT_MODEL,
           title,
           metadata: input.metadata ?? {},

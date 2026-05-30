@@ -16,6 +16,7 @@ export const conversationController = {
     const body = req.body as CreateConversationBody
     const conversation = await conversationService.createConversation({
       level: body.level,
+      ...(body.profile ? { profile: body.profile } : {}),
       ...(body.model ? { model: body.model } : {}),
       metadata: body.metadata ?? {},
     })
