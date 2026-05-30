@@ -1,7 +1,7 @@
 # Guia de Design de System Prompts - ia-chat-teacher
 
 > **Versao:** 2.0
-> **Data:** 29 de maio de 2026
+> **Data:** 30 de maio de 2026
 > **Contexto:** pratica de escrita em ingles com usuarios CEFR A1-C2
 
 ---
@@ -61,6 +61,12 @@ As recomendacoes de prompting foram revisadas contra estas fontes:
 - Prompting Guide: [Meta Prompting](https://www.promptingguide.ai/techniques/meta-prompting)
 - Prompting Guide: [Self-Consistency](https://www.promptingguide.ai/techniques/consistency)
 - Prompting Guide: [Generated Knowledge Prompting](https://www.promptingguide.ai/techniques/knowledge)
+- Prompting Guide: [Zero-Shot Prompting](https://www.promptingguide.ai/techniques/zeroshot)
+- Prompting Guide: [Prompt Chaining](https://www.promptingguide.ai/techniques/prompt_chaining)
+- Prompting Guide: [Retrieval Augmented Generation](https://www.promptingguide.ai/techniques/rag)
+- Prompting Guide: [Automatic Prompt Engineer](https://www.promptingguide.ai/techniques/ape)
+- Prompting Guide: [Active-Prompt](https://www.promptingguide.ai/techniques/activeprompt)
+- Prompting Guide: [Reflexion](https://www.promptingguide.ai/techniques/reflexion)
 
 Para fontes sobre o modelo e infraestrutura, veja a secao de referencias em `LLM_OPERATIONS_GUIDE.md`.
 
@@ -315,6 +321,26 @@ palavras. Evite prometer que o modelo usara "somente" as palavras mais comuns; p
 
 ## Tecnicas de Prompting
 
+### Zero-Shot Prompting
+
+**Adequacao:** alta.
+
+Zero-shot prompting e o modo de operacao padrao dos system prompts deste produto. O modelo
+responde a qualquer mensagem do usuario sem exemplos contextuais adicionais por turno,
+baseando-se apenas nas instrucoes do system prompt e no seu treinamento.
+
+Para este app, zero-shot e o baseline que sempre funcionara:
+
+- os system prompts definem comportamento, tom e limites de correcao de forma precisa;
+- o modelo instrucao-tuned nao precisa de exemplos in-context para cada mensagem do usuario;
+- a estrutura clara do prompt (identidade, regras, nivel, formato) ja e suficiente para guiar
+  a resposta na maioria dos turnos.
+
+Zero-shot funciona bem para conversas simples. Quando o comportamento esperado e sutil — como
+equilibrar correcao e conversa natural — adicionar few-shot examples melhora a consistencia.
+A combinacao de zero-shot (regras claras) com few-shot (exemplos demonstrativos) e a estrategia
+recomendada para todos os niveis.
+
 ### Few-Shot Prompting
 
 **Adequacao:** alta.
@@ -434,6 +460,125 @@ O uso correto e manter um bloco de conhecimento pedagogico compacto no system pr
 Nao transforme o system prompt em uma enciclopedia de gramatica inglesa. Se a aplicacao precisar
 de conhecimento extenso, use uma base externa ou recurso especifico de explicacao, nao o prompt
 base da conversa.
+
+### Prompt Chaining
+
+**Adequacao:** media, principalmente para recursos futuros.
+
+Prompt chaining divide uma tarefa complexa em subtarefas encadeadas, onde a saida de um prompt
+alimenta o proximo. No estado atual do produto, cada turno e processado em um unico prompt.
+Prompt chaining nao e necessario para a conversa basica, mas pode ser util em recursos futuros.
+
+Casos de uso potenciais para este produto:
+
+- Detectar o perfil de erros do usuario em uma chamada separada e usar esse resumo como contexto
+  dinamico na resposta pedagogica do mesmo turno.
+- Separar a avaliacao de qualidade da resposta (prompt 1) da geracao da resposta ao usuario
+  (prompt 2), permitindo auto-revisao antes de enviar.
+- Gerar um resumo da sessao ao final da conversa e usa-lo para personalizar a proxima sessao.
+
+Nao use prompt chaining na conversa basica atual. O overhead de latencia e custo nao justifica
+o beneficio para um unico turno de chat. Introduza chaining apenas quando houver uma tarefa
+claramente separavel que beneficie o produto.
+
+### APE — Automatic Prompt Engineer
+
+**Adequacao:** alta para manutencao, baixa para runtime.
+
+APE usa LLMs para gerar e avaliar candidatos de instrucoes automaticamente, selecionando o
+prompt mais eficaz com base em metricas de desempenho. Assim como meta-prompting, APE deve ser
+usado no processo de revisao dos prompts, nunca em producao.
+
+Fluxo recomendado com APE:
+
+1. Identifique a secao do prompt que precisa melhorar (ex.: instrucao de correcao de erros).
+2. Peca ao modelo para gerar 5 versoes alternativas da instrucao, mantendo o mesmo objetivo.
+3. Teste cada versao candidata com as conversas douradas do nivel correspondente.
+4. Selecione a versao com melhor equilibrio entre correcao util e fluxo de conversa natural.
+5. Aplique manualmente a mudanca e versione o arquivo de prompt.
+
+APE e mais util para encontrar wording de instrucoes que produz comportamento mais consistente
+do que a versao escrita manualmente. Nao substitui revisao e aprovacao humana.
+
+Exemplo de prompt APE para gerar alternativas:
+
+```text
+Generate 5 alternative phrasings for this instruction in a system prompt
+for an English writing coach at B1 level:
+"Correct at most 2 errors per turn. Prioritize errors that block comprehension."
+Each version must be concise, unambiguous, and appropriate for a friendly chat tutor.
+```
+
+### RAG — Retrieval Augmented Generation
+
+**Adequacao:** baixa no estado atual; media a alta em versao futura com base de conhecimento.
+
+RAG combina recuperacao de informacao com geracao de texto. O modelo recebe documentos relevantes
+como contexto adicional antes de gerar a resposta. No produto atual, o modelo responde apenas
+com base em seu treinamento e no system prompt fixo.
+
+RAG nao deve ser implementado agora porque:
+
+- nao ha base de conhecimento de gramatica, vocabulario ou CEFR disponivel;
+- adicionar retrieval sem base de qualidade pode introduzir informacao incorreta ou inconsistente;
+- a latencia extra de uma etapa de recuperacao afeta a experiencia de chat em tempo real.
+
+RAG faz sentido no futuro se o produto adicionar:
+
+- uma base de regras gramaticais por nivel CEFR;
+- listas de vocabulario curadas por nivel;
+- historico de erros do usuario para recuperar padroes recorrentes;
+- exemplos de boa escrita por nivel como referencia para feedback mais preciso.
+
+Quando implementado, o contexto recuperado deve entrar apos o system prompt fixo, na camada
+dinamica, preservando o prefixo estavel para caching. Consulte `LLM_OPERATIONS_GUIDE.md` para
+detalhes sobre caching e ordem de contexto.
+
+### Active-Prompt
+
+**Adequacao:** media para manutencao dos exemplos few-shot.
+
+Active-Prompt seleciona os exemplos mais informativos para anotacao humana medindo a incerteza
+do modelo em diferentes casos. Para este produto, o conceito se traduz em: identificar as
+mensagens de usuario para as quais o tutor gera respostas mais inconsistentes, e usar essas
+como base para novos ou melhores exemplos few-shot.
+
+Fluxo adaptado para este produto:
+
+1. Colete um conjunto representativo de mensagens de usuario por nivel (reais ou simuladas).
+2. Gere 3 a 5 respostas do tutor para cada mensagem com temperatura mais alta.
+3. Identifique as mensagens com maior variacao de comportamento: correcao a mais, a menos, ou
+   tom errado.
+4. Revise manualmente essas respostas e escreva a resposta ideal como novo exemplo few-shot.
+5. Atualize os exemplos no arquivo de prompt do nivel correspondente.
+
+Active-Prompt e especialmente util para casos limiares: mensagens quase corretas, mensagens
+ambiguas, usuarios escrevendo acima ou abaixo do nivel declarado. Aplicar esse processo uma
+vez por trimestre, ou apos qualquer relatorio de inconsistencia, melhora a qualidade dos
+exemplos sem reescrever o prompt inteiro.
+
+### Reflexion
+
+**Adequacao:** baixa no estado atual; media em contextos de avaliacao e iteracao de prompts.
+
+Reflexion e um framework em que agentes aprendem por reflexao verbal sobre seus proprios erros.
+O agente gera uma resposta, avalia se foi boa com base em criterios explicitos, armazena essa
+avaliacao como contexto, e usa esse aprendizado para melhorar na proxima tentativa.
+
+Reflexion nao deve ser implementado no chat de producao porque:
+
+- adiciona latencia e custo significativos por turno;
+- respostas de chat nao tem "certo ou errado" bem definido como em tarefas de codigo ou logica;
+- o fluxo de conversa natural e prejudicado por auto-avaliacao explicita.
+
+Onde Reflexion pode ser util neste produto no futuro:
+
+- em uma pipeline separada de avaliacao de qualidade dos prompts, onde o modelo avalia respostas
+  geradas offline e sugere melhoria incremental nos exemplos few-shot;
+- em um modo de revisao de texto longo, onde o tutor revisaria a propria correcao antes de
+  enviar ao usuario (como segunda passagem);
+- para testes automatizados de regressao de prompts, onde o modelo verifica se uma resposta
+  viola regras do system prompt e sinaliza para revisao humana.
 
 ---
 
@@ -702,6 +847,10 @@ Assistant: [NATURAL_RESPONSE_WITHOUT_INVENTED_CORRECTION]
 - [ ] Nao ha ReAct sem ferramentas?
 - [ ] Knowledge no prompt e compacto?
 - [ ] Meta-prompting foi usado apenas no processo de revisao?
+- [ ] APE foi usado para gerar alternativas antes de escolher wording critico?
+- [ ] Active-Prompt foi aplicado para identificar exemplos few-shot mais informativos?
+- [ ] RAG nao e usado sem base de conhecimento curada?
+- [ ] Prompt chaining nao e usado em turnos simples sem subtarefas separaveis?
 
 ### Testes
 
