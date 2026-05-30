@@ -34,17 +34,18 @@ const LEVEL_STORAGE_KEY = 'preferredLevel'
 
 export default function LevelSelector() {
   const router = useRouter()
-  const [selected, setSelected] = useState<Level>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(LEVEL_STORAGE_KEY)
-      if (stored && LEVELS.some(l => l.value === stored)) return stored as Level
-    }
-    return 'B1'
-  })
+  const [selected, setSelected] = useState<Level>('B1')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [models, setModels] = useState<AIModel[]>([])
   const [selectedModel, setSelectedModel] = useState<string>('')
+
+  useEffect(() => {
+    const stored = localStorage.getItem(LEVEL_STORAGE_KEY)
+    if (stored && LEVELS.some(l => l.value === stored)) {
+      setSelected(stored as Level)
+    }
+  }, [])
 
   useEffect(() => {
     api
