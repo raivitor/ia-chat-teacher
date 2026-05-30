@@ -21,6 +21,7 @@ vi.mock('../../lib/api', () => ({
   api: {
     listConversations: vi.fn(),
     deleteConversation: vi.fn(),
+    getUnreviewedCount: vi.fn(),
   },
 }))
 
@@ -39,6 +40,7 @@ const conv1 = {
   title: 'First conversation',
   metadata: {},
   webSearchEnabled: false,
+  reviewedAt: null,
   createdAt: '',
   updatedAt: '',
 }
@@ -52,6 +54,7 @@ const conv2 = {
   title: 'Second conversation',
   metadata: {},
   webSearchEnabled: false,
+  reviewedAt: null,
   createdAt: '',
   updatedAt: '',
 }
@@ -61,6 +64,7 @@ beforeEach(() => {
   vi.mocked(useParams).mockReturnValue({})
   vi.mocked(api.listConversations).mockResolvedValue([conv1, conv2])
   vi.mocked(api.deleteConversation).mockResolvedValue()
+  vi.mocked(api.getUnreviewedCount).mockResolvedValue(0)
   mockPush.mockReset()
 })
 

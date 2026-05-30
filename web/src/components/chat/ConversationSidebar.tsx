@@ -12,9 +12,12 @@ export default function ConversationSidebar() {
   const activeId = params?.id as string | undefined
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null)
+  const [unreviewedCount, setUnreviewedCount] = useState(0)
+  const [reviewLoading, setReviewLoading] = useState(false)
 
   useEffect(() => {
     api.listConversations().then(setConversations).catch(console.error)
+    api.getUnreviewedCount().then(setUnreviewedCount).catch(console.error)
   }, [activeId])
 
   async function handleDelete(id: string) {
@@ -23,6 +26,24 @@ export default function ConversationSidebar() {
     setConversationToDelete(null)
     if (id === activeId) {
       router.push('/chat')
+    }
+  }
+
+  async function handleGenerateReview() {
+    setReviewLoading(true)
+    try {
+      const blob = await api.generateReview()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'anki-review.txt'
+      a.click()
+      URL.revokeObjectURL(url)
+      setUnreviewedCount(0)
+    } catch {
+      // silently fail — user can retry
+    } finally {
+      setReviewLoading(false)
     }
   }
 
@@ -109,6 +130,51 @@ export default function ConversationSidebar() {
         </div>
       )}
       <div className='sidebar-footer'>
+        <button
+          type='button'
+          className='review-btn'
+          disabled={unreviewedCount === 0 || reviewLoading}
+          onClick={handleGenerateReview}>
+          <svg
+            xmlns='http://www.w3.org/2000/svg'
+            width='16'
+            height='16'
+            viewBox='0 0 24 24'
+            fill='none'
+            stroke='currentColor'
+            strokeWidth='2'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            aria-hidden='true'>
+            <rect
+              x='2'
+              y='3'
+              width='20'
+              height='14'
+              rx='2'
+              ry='2'
+            />
+            <line
+              x1='8'
+              y1='21'
+              x2='16'
+              y2='21'
+            />
+            <line
+              x1='12'
+              y1='17'
+              x2='12'
+              y2='21'
+            />
+          </svg>
+          <span>
+            {reviewLoading
+              ? 'Gerando revisão...'
+              : unreviewedCount > 0
+                ? `Gerar revisão (${unreviewedCount})`
+                : 'Nenhuma revisão pendente'}
+          </span>
+        </button>
         <button
           type='button'
           className='settings-btn'

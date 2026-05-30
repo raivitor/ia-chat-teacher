@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd /home/raivitor/projeto/ia-chat-teacher && npm run 2>&1 \\| grep lint$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

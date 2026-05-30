@@ -127,3 +127,41 @@ describe('api.chatUrl', () => {
     expect(api.chatUrl()).toContain('/api/chat')
   })
 })
+
+describe('api.getUnreviewedCount', () => {
+  it('returns the unreviewed count', async () => {
+    mockFetch.mockResolvedValue(ok({ count: 3 }))
+
+    const result = await api.getUnreviewedCount()
+
+    expect(result).toBe(3)
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/review/unreviewed-count'))
+  })
+
+  it('throws when response is not ok', async () => {
+    mockFetch.mockResolvedValue(notOk())
+
+    await expect(api.getUnreviewedCount()).rejects.toThrow('Failed to fetch unreviewed count')
+  })
+})
+
+describe('api.generateReview', () => {
+  it('sends POST and returns a Blob', async () => {
+    const blob = new Blob(['csv content'], { type: 'text/csv' })
+    mockFetch.mockResolvedValue({ ok: true, blob: () => Promise.resolve(blob) } as unknown as Response)
+
+    const result = await api.generateReview()
+
+    expect(result).toBeInstanceOf(Blob)
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/review/generate'),
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
+
+  it('throws when response is not ok', async () => {
+    mockFetch.mockResolvedValue(notOk())
+
+    await expect(api.generateReview()).rejects.toThrow('Failed to generate review')
+  })
+})

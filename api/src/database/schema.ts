@@ -22,6 +22,7 @@ export const conversations = pgTable(
     title: text('title').notNull(),
     metadata: jsonb('metadata').notNull().default('{}'),
     webSearchEnabled: boolean('web_search_enabled').notNull().default(false),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },

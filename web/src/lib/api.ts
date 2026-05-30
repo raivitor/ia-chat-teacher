@@ -22,6 +22,7 @@ export interface Conversation {
   title: string
   metadata: Record<string, unknown>
   webSearchEnabled: boolean
+  reviewedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -90,5 +91,18 @@ export const api = {
 
   chatUrl(): string {
     return `${API_URL}/api/chat`
+  },
+
+  async getUnreviewedCount(): Promise<number> {
+    const res = await fetch(`${API_URL}/api/review/unreviewed-count`)
+    if (!res.ok) throw new Error('Failed to fetch unreviewed count')
+    const data = (await res.json()) as { count: number }
+    return data.count
+  },
+
+  async generateReview(): Promise<Blob> {
+    const res = await fetch(`${API_URL}/api/review/generate`, { method: 'POST' })
+    if (!res.ok) throw new Error('Failed to generate review')
+    return res.blob()
   },
 }

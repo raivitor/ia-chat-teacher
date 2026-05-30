@@ -43,6 +43,7 @@ beforeEach(() => {
     title: 'New',
     metadata: {},
     webSearchEnabled: false,
+    reviewedAt: null,
     createdAt: '',
     updatedAt: '',
   })
@@ -155,6 +156,7 @@ describe('LevelSelector', () => {
             title: 'New',
             metadata: {},
             webSearchEnabled: false,
+            reviewedAt: null,
             createdAt: '',
             updatedAt: '',
           })
