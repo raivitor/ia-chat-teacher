@@ -16,7 +16,7 @@ describe('MessageInput', () => {
     )
 
     expect(screen.getByRole('textbox')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Enviar' })).toBeInTheDocument()
   })
 
   it('calls onSubmit when Enter is pressed with non-empty value', async () => {
@@ -102,7 +102,7 @@ describe('MessageInput', () => {
     )
 
     expect(screen.getByRole('textbox')).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Enviar' })).toBeDisabled()
   })
 
   it('disables send button when value is empty', () => {
@@ -115,7 +115,7 @@ describe('MessageInput', () => {
       />,
     )
 
-    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Enviar' })).toBeDisabled()
   })
 
   it('enables send button when value is non-empty and not disabled', () => {
@@ -128,7 +128,27 @@ describe('MessageInput', () => {
       />,
     )
 
-    expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Enviar' })).toBeEnabled()
+  })
+
+  it('shows stop button and calls onStop while streaming', async () => {
+    const onStop = vi.fn()
+    render(
+      <MessageInput
+        value=''
+        onChange={vi.fn()}
+        onSubmit={vi.fn()}
+        disabled={true}
+        isStreaming={true}
+        onStop={onStop}
+      />,
+    )
+
+    const stopButton = screen.getByRole('button', { name: 'Parar' })
+    expect(stopButton).toBeEnabled()
+    await userEvent.click(stopButton)
+
+    expect(onStop).toHaveBeenCalledOnce()
   })
 
   it('calls onChange when text is typed', async () => {

@@ -116,7 +116,7 @@ describe('LevelSelector', () => {
     })
 
     await userEvent.click(screen.getByRole('button', { name: /A1/ }))
-    await userEvent.click(screen.getByRole('button', { name: /Start Conversation/ }))
+    await userEvent.click(screen.getByRole('button', { name: /Iniciar conversa/ }))
 
     await waitFor(() => {
       expect(api.createConversation).toHaveBeenCalledWith('A1', 'model-a', 'professor', false)
@@ -128,7 +128,7 @@ describe('LevelSelector', () => {
     render(<LevelSelector />)
 
     await userEvent.click(screen.getByRole('button', { name: /C2/ }))
-    await userEvent.click(screen.getByRole('button', { name: /Start Conversation/ }))
+    await userEvent.click(screen.getByRole('button', { name: /Iniciar conversa/ }))
 
     await waitFor(() => {
       expect(localStorage.getItem('preferredLevel')).toBe('C2')
@@ -140,10 +140,10 @@ describe('LevelSelector', () => {
 
     render(<LevelSelector />)
 
-    await userEvent.click(screen.getByRole('button', { name: /Start Conversation/ }))
+    await userEvent.click(screen.getByRole('button', { name: /Iniciar conversa/ }))
 
     await waitFor(() => {
-      expect(screen.getByText(/Failed to start conversation/)).toBeInTheDocument()
+      expect(screen.getByText(/Não foi possível iniciar a conversa/)).toBeInTheDocument()
     })
   })
 
@@ -170,9 +170,9 @@ describe('LevelSelector', () => {
     )
 
     render(<LevelSelector />)
-    await userEvent.click(screen.getByRole('button', { name: /Start Conversation/ }))
+    await userEvent.click(screen.getByRole('button', { name: /Iniciar conversa/ }))
 
-    expect(screen.getByRole('button', { name: /Starting.../ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Iniciando.../ })).toBeDisabled()
 
     resolveCreate()
     await waitFor(() => {

@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@ai-sdk/react', () => ({
@@ -7,6 +8,8 @@ vi.mock('@ai-sdk/react', () => ({
     status: 'ready',
     error: null,
     sendMessage: vi.fn(),
+    stop: vi.fn(),
+    regenerate: vi.fn(),
   })),
 }))
 
@@ -18,6 +21,8 @@ vi.mock('../../lib/api', () => ({
   api: {
     getConversation: vi.fn(),
     getModels: vi.fn(),
+    finishConversation: vi.fn(),
+    reopenConversation: vi.fn(),
     chatUrl: vi.fn(() => 'http://localhost:3001/api/chat'),
   },
 }))
@@ -79,6 +84,8 @@ beforeEach(() => {
     status: 'ready',
     error: null,
     sendMessage: vi.fn(),
+    stop: vi.fn(),
+    regenerate: vi.fn(),
   } as unknown as ReturnType<typeof useChat>)
 })
 
@@ -205,18 +212,67 @@ describe('ChatInterface', () => {
     render(<ChatInterface conversationId='conv-1' />)
 
     await waitFor(() => {
-      expect(screen.getByText('Failed to load conversation history.')).toBeInTheDocument()
+      expect(screen.getByText('Não foi possível carregar o histórico da conversa.')).toBeInTheDocument()
     })
   })
 
-  it('renders without errors when conversation loads successfully', async () => {
+  it('renders conversation header with level, persona, and model', async () => {
     render(<ChatInterface conversationId='conv-1' />)
 
     await waitFor(() => {
       expect(api.getConversation).toHaveBeenCalledWith('conv-1')
     })
 
-    expect(screen.queryByText('Failed to load conversation history.')).not.toBeInTheDocument()
+    expect(screen.getByText('Test chat')).toBeInTheDocument()
+    expect(screen.getByText('Nível B1')).toBeInTheDocument()
+    expect(screen.getByText('Professora (Aria)')).toBeInTheDocument()
+    expect(screen.getByText('Model A')).toBeInTheDocument()
+    expect(screen.queryByText('Não foi possível carregar o histórico da conversa.')).not.toBeInTheDocument()
+  })
+
+  it('disables finish button when conversation has no messages', async () => {
+    render(<ChatInterface conversationId='conv-1' />)
+
+    const finishButton = await screen.findByRole('button', { name: 'Finalizar conversa' })
+    expect(finishButton).toBeDisabled()
+  })
+
+  it('finishes and reopens conversation from the chat header', async () => {
+    vi.mocked(useChat).mockReturnValue({
+      messages: [{ id: 'm1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] }],
+      status: 'ready',
+      error: null,
+      sendMessage: vi.fn(),
+      stop: vi.fn(),
+      regenerate: vi.fn(),
+    } as unknown as ReturnType<typeof useChat>)
+    vi.mocked(api.finishConversation).mockResolvedValue({
+      ...baseConversation,
+      finishedAt: '2026-11-20T22:50:00.000Z',
+    })
+    vi.mocked(api.reopenConversation).mockResolvedValue({
+      ...baseConversation,
+      finishedAt: null,
+    })
+
+    render(<ChatInterface conversationId='conv-1' />)
+
+    const finishButton = await screen.findByRole('button', { name: 'Finalizar conversa' })
+    await userEvent.click(finishButton)
+
+    await waitFor(() => {
+      expect(api.finishConversation).toHaveBeenCalledWith('conv-1')
+      expect(screen.getByText('Aguardando revisão')).toBeInTheDocument()
+      expect(screen.getByRole('textbox')).toBeDisabled()
+    })
+
+    const reopenButton = screen.getByRole('button', { name: 'Reabrir conversa' })
+    await userEvent.click(reopenButton)
+
+    await waitFor(() => {
+      expect(api.reopenConversation).toHaveBeenCalledWith('conv-1')
+      expect(screen.getByRole('textbox')).toBeEnabled()
+    })
   })
 
   it('passes initialMessages to useChat excluding system messages', async () => {
@@ -339,12 +395,15 @@ describe('ChatInterface', () => {
     })
   })
 
-  it('shows stream error when useChat returns an error', async () => {
+  it('shows stream error and retry button when useChat returns an error', async () => {
+    const regenerate = vi.fn()
     vi.mocked(useChat).mockReturnValue({
       messages: [],
       status: 'error',
       error: new Error('Stream failed'),
       sendMessage: vi.fn(),
+      stop: vi.fn(),
+      regenerate,
     } as unknown as ReturnType<typeof useChat>)
 
     render(<ChatInterface conversationId='conv-1' />)
@@ -352,5 +411,8 @@ describe('ChatInterface', () => {
     await waitFor(() => {
       expect(screen.getByText(/Stream failed/)).toBeInTheDocument()
     })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+    expect(regenerate).toHaveBeenCalledOnce()
   })
 })

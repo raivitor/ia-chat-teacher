@@ -9,8 +9,10 @@ import { DEFAULT_GENERATION_PARAMS, FALLBACK_MODEL, MAX_HISTORY_MESSAGES } from 
 import { buildOpenRouterProviderOptions } from '../lib/ai/openrouterOptions.js'
 import { webSearchTool } from '../lib/ai/tools/webSearch.js'
 import { mapLanguageModelUsage } from '../lib/ai/usageMetadata.js'
+import { evaluate } from '../lib/evaluation/evaluator.js'
 import { logger } from '../lib/observability/logger.js'
 import { loadPrompt } from '../lib/prompts/loader.js'
+import { isValidLevel } from '../types/level.js'
 import type { CreateMessageInput, MessagePart } from '../types/message.js'
 
 const NORMAL_FINISH_REASONS = new Set(['stop'])
@@ -196,6 +198,7 @@ export const chatService = {
         const usage = mapLanguageModelUsage(totalUsage)
         const openrouterUsage = providerMetadata?.openrouter?.usage
         const parts = buildAssistantMessageParts(steps, text)
+        const evaluation = text.trim() && isValidLevel(conversation.level) ? evaluate(text, conversation.level) : null
 
         if (parts.length > 0) {
           await chatService.saveMessage({
@@ -213,6 +216,16 @@ export const chatService = {
               model: responseModel.modelId,
               provider: responseModel.provider,
               ...(openrouterUsage ? { providerMetadata: { openrouter: { usage: openrouterUsage } } } : {}),
+              ...(evaluation
+                ? {
+                    evaluation: {
+                      passed: evaluation.passed,
+                      wordCount: evaluation.wordCount,
+                      correctionCount: evaluation.correctionCount,
+                      violations: evaluation.violations,
+                    },
+                  }
+                : {}),
             },
           })
           assistantSaved = true
@@ -230,6 +243,13 @@ export const chatService = {
           ttftMs,
           ...usage,
           ...(openrouterUsage ? { openrouterUsage } : {}),
+          ...(evaluation
+            ? {
+                evaluationPassed: evaluation.passed,
+                evaluationWordCount: evaluation.wordCount,
+                evaluationViolations: evaluation.violations,
+              }
+            : {}),
         })
 
         if (!NORMAL_FINISH_REASONS.has(finishReason)) {

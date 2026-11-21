@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'English Writing Coach',
-  description: 'An AI-powered English writing coach to help you improve your writing skills.',
+  description: 'Treinador de escrita em inglês com IA para praticar conversação adaptada ao seu nível CEFR.',
 }
 
 export default function RootLayout({
@@ -23,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang='en'>
+    <html lang='pt-BR'>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>{children}</body>
     </html>
   )

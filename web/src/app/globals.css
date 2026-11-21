@@ -429,6 +429,209 @@ button {
   color: var(--color-error);
   border-radius: var(--radius-sm);
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.retry-btn {
+  background: var(--color-error);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.retry-btn:hover {
+  background: #dc2626;
+}
+
+/* ============================================================
+   Chat Header & Status Badges
+   ============================================================ */
+.chat-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chat-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.chat-header-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-meta-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.meta-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.meta-badge-level {
+  background: var(--color-primary-light);
+  color: var(--color-primary-hover);
+  border-color: transparent;
+}
+
+.meta-badge-web {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: transparent;
+}
+
+.meta-badge-pending {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: transparent;
+}
+
+.meta-badge-reviewed {
+  background: #dcfce7;
+  color: #166534;
+  border-color: transparent;
+}
+
+.finish-btn,
+.reopen-btn {
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    background 0.15s,
+    opacity 0.15s;
+}
+
+.finish-btn {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+}
+
+.finish-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.reopen-btn {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.reopen-btn:hover:not(:disabled) {
+  background: var(--color-bg);
+}
+
+.finish-btn:disabled,
+.reopen-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.conv-badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.conv-status {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+}
+
+.conv-status-pending {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.conv-status-reviewed {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+.review-error {
+  font-size: 12px;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
+.correction-tip {
+  display: inline;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-weight: 500;
+}
+
+.tool-sources {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.tool-sources-label {
+  display: block;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.tool-sources ul {
+  margin: 0;
+  padding-left: var(--space-4);
+}
+
+.tool-sources a {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.message-input .stop-btn {
+  background: var(--color-error);
+}
+
+.message-input .stop-btn:hover:not(:disabled) {
+  background: #dc2626;
 }
 
 /* ============================================================

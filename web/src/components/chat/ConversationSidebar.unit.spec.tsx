@@ -22,6 +22,7 @@ vi.mock('../../lib/api', () => ({
     listConversations: vi.fn(),
     deleteConversation: vi.fn(),
     getUnreviewedCount: vi.fn(),
+    generateReview: vi.fn(),
   },
 }))
 
@@ -76,7 +77,7 @@ describe('ConversationSidebar', () => {
     render(<ConversationSidebar />)
 
     await waitFor(() => {
-      expect(screen.getByText('No conversations yet.')).toBeInTheDocument()
+      expect(screen.getByText('Nenhuma conversa ainda.')).toBeInTheDocument()
     })
   })
 
@@ -102,12 +103,38 @@ describe('ConversationSidebar', () => {
     expect(activeItem).toHaveTextContent('First conversation')
   })
 
-  it('navigates to /onboarding when "+ New" is clicked', async () => {
+  it('navigates to /onboarding when "+ Nova" is clicked', async () => {
     render(<ConversationSidebar />)
 
-    await userEvent.click(screen.getByRole('button', { name: '+ New' }))
+    await userEvent.click(screen.getByRole('button', { name: '+ Nova' }))
 
     expect(mockPush).toHaveBeenCalledWith('/onboarding')
+  })
+
+  it('displays status badges for finished and reviewed conversations', async () => {
+    vi.mocked(api.listConversations).mockResolvedValue([
+      { ...conv1, finishedAt: '2026-11-20T22:00:00.000Z', reviewedAt: null },
+      { ...conv2, finishedAt: '2026-11-20T22:00:00.000Z', reviewedAt: '2026-11-20T22:10:00.000Z' },
+    ])
+    render(<ConversationSidebar />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Pronta p/ revisão')).toBeInTheDocument()
+      expect(screen.getByText('Revisada')).toBeInTheDocument()
+    })
+  })
+
+  it('shows visible error when generating review fails', async () => {
+    vi.mocked(api.getUnreviewedCount).mockResolvedValue(2)
+    vi.mocked(api.generateReview).mockRejectedValue(new Error('API error'))
+    render(<ConversationSidebar />)
+
+    const reviewButton = await screen.findByRole('button', { name: /Gerar revisão \(2\)/ })
+    await userEvent.click(reviewButton)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Não foi possível gerar a revisão/)).toBeInTheDocument()
+    })
   })
 
   it('opens delete confirmation dialog when delete button is clicked', async () => {

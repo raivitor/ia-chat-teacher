@@ -3,39 +3,35 @@
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 
-import { api, type Level, type Profile, type AIModel } from '../../lib/api'
+import { api, type AIModel, type Level, type Profile } from '../../lib/api'
+import { PROFILE_META } from '../../lib/profiles'
 
 const LEVELS: { value: Level; label: string; description: string }[] = [
-  { value: 'A1', label: 'A1 — Beginner', description: 'You know a few basic words and phrases.' },
+  { value: 'A1', label: 'A1 — Iniciante', description: 'Você conhece algumas palavras e frases básicas.' },
   {
     value: 'A2',
-    label: 'A2 — Elementary',
-    description: 'You can talk about familiar topics in simple terms.',
+    label: 'A2 — Básico',
+    description: 'Você consegue falar sobre assuntos familiares de forma simples.',
   },
   {
     value: 'B1',
-    label: 'B1 — Intermediate',
-    description: 'You can handle most everyday situations.',
+    label: 'B1 — Intermediário',
+    description: 'Você lida bem com a maioria das situações do dia a dia.',
   },
   {
     value: 'B2',
-    label: 'B2 — Upper Intermediate',
-    description: 'You can discuss complex topics with confidence.',
+    label: 'B2 — Intermediário Superior',
+    description: 'Você discute assuntos complexos com confiança.',
   },
   {
     value: 'C1',
-    label: 'C1 — Advanced',
-    description: 'You express yourself fluently and spontaneously.',
+    label: 'C1 — Avançado',
+    description: 'Você se expressa com fluência e espontaneidade.',
   },
-  { value: 'C2', label: 'C2 — Proficient', description: 'You have mastered the language.' },
+  { value: 'C2', label: 'C2 — Proficiente', description: 'Você domina o idioma com naturalidade.' },
 ]
 
-const PROFILES: { value: Profile; label: string; description: string }[] = [
-  { value: 'professor', label: 'Professor', description: 'Structured lessons with clear explanations.' },
-  { value: 'bestfriend', label: 'Best Friend', description: 'Casual and playful, like texting a friend.' },
-  { value: 'secretary', label: 'Secretary', description: 'Professional and precise, business-focused.' },
-  { value: 'girlfriend', label: 'Girlfriend', description: 'Warm and encouraging, personal touch.' },
-]
+const PROFILES: Profile[] = ['professor', 'bestfriend', 'secretary', 'girlfriend']
 
 const LEVEL_STORAGE_KEY = 'preferredLevel'
 const PROFILE_STORAGE_KEY = 'preferredProfile'
@@ -58,7 +54,7 @@ export default function LevelSelector() {
     if (stored && LEVELS.some(l => l.value === stored)) setSelected(stored as Level)
 
     const storedProfile = localStorage.getItem(PROFILE_STORAGE_KEY)
-    if (storedProfile && PROFILES.some(p => p.value === storedProfile)) setSelectedProfile(storedProfile as Profile)
+    if (storedProfile && PROFILES.includes(storedProfile as Profile)) setSelectedProfile(storedProfile as Profile)
 
     const storedWebSearch = localStorage.getItem(WEB_SEARCH_STORAGE_KEY)
     if (storedWebSearch !== null) setWebSearchEnabled(storedWebSearch === 'true')
@@ -90,7 +86,7 @@ export default function LevelSelector() {
       )
       router.push(`/chat/${conversation.id}`)
     } catch {
-      setError('Failed to start conversation. Please try again.')
+      setError('Não foi possível iniciar a conversa. Tente novamente.')
       setLoading(false)
     }
   }
@@ -98,7 +94,7 @@ export default function LevelSelector() {
   return (
     <div className='level-selector'>
       <h1>English Writing Coach</h1>
-      <p>Select your English level to get started:</p>
+      <p>Selecione seu nível de inglês para começar:</p>
       <div className='levels'>
         {LEVELS.map(level => (
           <button
@@ -112,23 +108,26 @@ export default function LevelSelector() {
         ))}
       </div>
 
-      <p style={{ marginTop: '24px', marginBottom: '10px' }}>Choose your conversation style:</p>
+      <p style={{ marginTop: '24px', marginBottom: '10px' }}>Escolha o estilo da conversa:</p>
       <div className='levels'>
-        {PROFILES.map(profile => (
-          <button
-            key={profile.value}
-            className={`level-card ${selectedProfile === profile.value ? 'selected' : ''}`}
-            onClick={() => setSelectedProfile(profile.value)}
-            type='button'>
-            <span className='level-name'>{profile.label}</span>
-            <span className='level-desc'>{profile.description}</span>
-          </button>
-        ))}
+        {PROFILES.map(profile => {
+          const meta = PROFILE_META[profile]
+          return (
+            <button
+              key={profile}
+              className={`level-card ${selectedProfile === profile ? 'selected' : ''}`}
+              onClick={() => setSelectedProfile(profile)}
+              type='button'>
+              <span className='level-name'>{meta.label}</span>
+              <span className='level-desc'>{meta.description}</span>
+            </button>
+          )
+        })}
       </div>
 
       {models.length > 0 && (
         <div style={{ marginTop: '20px', marginBottom: '20px' }}>
-          <p style={{ marginBottom: '10px' }}>Select AI Model:</p>
+          <p style={{ marginBottom: '10px' }}>Selecione o modelo de IA:</p>
           <select
             value={selectedModel}
             onChange={e => setSelectedModel(e.target.value)}
@@ -172,9 +171,9 @@ export default function LevelSelector() {
             style={{ width: '18px', height: '18px', cursor: 'pointer' }}
           />
           <span>
-            <strong>Web Search</strong>
+            <strong>Busca na Web</strong>
             <span style={{ display: 'block', fontSize: '0.85rem', color: '#64748b' }}>
-              Allow the coach to search the web for up-to-date information
+              Permitir que a IA pesquise na web por informações atualizadas
             </span>
           </span>
         </label>
@@ -186,7 +185,7 @@ export default function LevelSelector() {
         onClick={handleStart}
         disabled={loading}
         type='button'>
-        {loading ? 'Starting...' : 'Start Conversation'}
+        {loading ? 'Iniciando...' : 'Iniciar conversa'}
       </button>
     </div>
   )

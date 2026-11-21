@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { api, type Conversation } from '../../lib/api'
+import { CONVERSATIONS_CHANGED_EVENT, notifyConversationsChanged } from '../../lib/profiles'
 
 export default function ConversationSidebar() {
   const router = useRouter()
@@ -14,16 +15,26 @@ export default function ConversationSidebar() {
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null)
   const [unreviewedCount, setUnreviewedCount] = useState(0)
   const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const refreshSidebar = useCallback(() => {
     api.listConversations().then(setConversations).catch(console.error)
     api.getUnreviewedCount().then(setUnreviewedCount).catch(console.error)
-  }, [activeId])
+  }, [])
+
+  useEffect(() => {
+    refreshSidebar()
+    window.addEventListener(CONVERSATIONS_CHANGED_EVENT, refreshSidebar)
+    return () => {
+      window.removeEventListener(CONVERSATIONS_CHANGED_EVENT, refreshSidebar)
+    }
+  }, [activeId, refreshSidebar])
 
   async function handleDelete(id: string) {
     await api.deleteConversation(id)
     setConversations(prev => prev.filter(c => c.id !== id))
     setConversationToDelete(null)
+    api.getUnreviewedCount().then(setUnreviewedCount).catch(console.error)
     if (id === activeId) {
       router.push('/chat')
     }
@@ -31,6 +42,7 @@ export default function ConversationSidebar() {
 
   async function handleGenerateReview() {
     setReviewLoading(true)
+    setReviewError(null)
     try {
       const blob = await api.generateReview()
       const url = URL.createObjectURL(blob)
@@ -40,8 +52,9 @@ export default function ConversationSidebar() {
       a.click()
       URL.revokeObjectURL(url)
       setUnreviewedCount(0)
+      notifyConversationsChanged()
     } catch {
-      // silently fail — user can retry
+      setReviewError('Não foi possível gerar a revisão. Tente novamente.')
     } finally {
       setReviewLoading(false)
     }
@@ -50,16 +63,16 @@ export default function ConversationSidebar() {
   return (
     <aside className='conversation-sidebar'>
       <div className='sidebar-header'>
-        <h2>Conversations</h2>
+        <h2>Conversas</h2>
         <button
           onClick={() => router.push('/onboarding')}
           type='button'
           className='new-btn'>
-          + New
+          + Nova
         </button>
       </div>
       <nav className='conversation-list'>
-        {conversations.length === 0 && <p className='empty'>No conversations yet.</p>}
+        {conversations.length === 0 && <p className='empty'>Nenhuma conversa ainda.</p>}
         {conversations.map(conv => (
           <div
             key={conv.id}
@@ -68,7 +81,14 @@ export default function ConversationSidebar() {
               href={`/chat/${conv.id}`}
               className='conv-info'>
               <span className='conv-title'>{conv.title}</span>
-              <span className='conv-level'>{conv.level}</span>
+              <div className='conv-badges'>
+                <span className='conv-level'>{conv.level}</span>
+                {conv.reviewedAt ? (
+                  <span className='conv-status conv-status-reviewed'>Revisada</span>
+                ) : conv.finishedAt ? (
+                  <span className='conv-status conv-status-pending'>Pronta p/ revisão</span>
+                ) : null}
+              </div>
             </Link>
             <button
               type='button'
@@ -130,6 +150,7 @@ export default function ConversationSidebar() {
         </div>
       )}
       <div className='sidebar-footer'>
+        {reviewError && <p className='review-error'>{reviewError}</p>}
         <button
           type='button'
           className='review-btn'
