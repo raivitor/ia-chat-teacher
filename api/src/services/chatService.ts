@@ -73,6 +73,16 @@ export function buildAssistantMessageParts(steps: ReadonlyArray<StepLike>, fallb
   return parts
 }
 
+export function formatStreamError(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
+  }
+  if (typeof error === 'string' && error.trim()) {
+    return error
+  }
+  return 'Erro desconhecido ao gerar resposta.'
+}
+
 export const chatService = {
   async saveMessage(input: CreateMessageInput) {
     const now = new Date()
@@ -267,7 +277,9 @@ export const chatService = {
     // Stream to Express response using AI SDK helper
     await pipeUIMessageStreamToResponse({
       response: res,
-      stream: result.toUIMessageStream(),
+      stream: result.toUIMessageStream({
+        onError: formatStreamError,
+      }),
       status: 200,
     })
   },

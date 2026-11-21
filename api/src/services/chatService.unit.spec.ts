@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { buildAssistantMessageParts, buildModelMessages } from './chatService.js'
+import { buildAssistantMessageParts, buildModelMessages, formatStreamError } from './chatService.js'
 
 test('buildModelMessages filters system messages and applies sliding window', () => {
   const history = [
@@ -69,4 +69,10 @@ test('buildAssistantMessageParts returns empty array when nothing was generated'
   const parts = buildAssistantMessageParts([], '   ')
 
   assert.deepStrictEqual(parts, [])
+})
+
+test('formatStreamError extracts readable message from Error, string, or unknown values', () => {
+  assert.strictEqual(formatStreamError(new Error('Rate limited upstream')), 'Rate limited upstream')
+  assert.strictEqual(formatStreamError('Provider unavailable'), 'Provider unavailable')
+  assert.strictEqual(formatStreamError({}), 'Erro desconhecido ao gerar resposta.')
 })

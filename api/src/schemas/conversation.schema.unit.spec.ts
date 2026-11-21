@@ -3,21 +3,14 @@ import { test } from 'node:test'
 
 import { createConversationSchema } from './conversation.schema.js'
 
-test('createConversationSchema accepts allowed free Gemma 4 models', () => {
-  const primary = createConversationSchema.safeParse({
-    level: 'B1',
-    model: 'google/gemma-4-31b-it:free',
-  })
-  const fallback = createConversationSchema.safeParse({
-    level: 'B1',
-    model: 'google/gemma-4-26b-a4b-it:free',
-  })
-
-  assert.strictEqual(primary.success, true)
-  assert.strictEqual(fallback.success, true)
+test('createConversationSchema accepts allowed Google models', () => {
+  for (const model of ['google/gemini-3.8-flash', 'google/gemini-3.1-flash-lite', 'google/gemma-4-31b-it:free']) {
+    const result = createConversationSchema.safeParse({ level: 'B1', model })
+    assert.strictEqual(result.success, true)
+  }
 })
 
-test('createConversationSchema rejects unsupported or paid models', () => {
+test('createConversationSchema rejects unsupported models', () => {
   const result = createConversationSchema.safeParse({
     level: 'B1',
     model: 'openai/gpt-4o',

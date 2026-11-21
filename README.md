@@ -54,7 +54,7 @@ Acesse `http://localhost:3000` — você será redirecionado para a tela de onbo
 
 ## Funcionalidades principais
 
-- **Onboarding configurável por conversa:** escolha nível CEFR (`A1`–`C2`), persona (**Professora Aria**, **Melhor Amigo Jamie**, **Secretária Claire** ou **Namorada Lily**), modelo gratuito de IA e se deseja habilitar **Busca na Web**. As configurações ficam fixas na conversa criada e o usuário inicia o assunto.
+- **Onboarding configurável por conversa:** escolha nível CEFR (`A1`–`C2`), persona (**Professora Aria**, **Melhor Amigo Jamie**, **Secretária Claire** ou **Namorada Lily**), modelo de IA e se deseja habilitar **Busca na Web**. As configurações ficam fixas na conversa criada e o usuário inicia o assunto.
 - **Chat em streaming:** respostas em inglês com destaque visual para dicas/correções, fontes clicáveis quando a busca web é utilizada, botão **Parar**, botão **Tentar novamente** em caso de erro e barra de uso da janela de contexto.
 - **Finalização e revisão para o Anki:** clique em **Finalizar conversa** no cabeçalho do chat quando encerrar a prática. Conversas finalizadas (com pelo menos 1 mensagem) entram na fila **Gerar revisão (N)** da barra lateral, que extrai flashcards via IA e faz o download direto do arquivo `anki-review.txt` pronto para importar no Anki. Caso queira continuar uma conversa finalizada, use **Reabrir conversa**.
 
@@ -66,10 +66,11 @@ Acesse `http://localhost:3000` — você será redirecionado para a tela de onbo
 
 ## Estratégia LLM
 
-O backend usa exclusivamente modelos gratuitos do OpenRouter via Vercel AI SDK:
+O backend usa modelos do Google via OpenRouter (compatível com BYOK do Google AI Studio) pelo Vercel AI SDK:
 
-- **1ª opção (padrão):** `google/gemma-4-31b-it:free` (Gemma 4 31B — modelo denso `instruction-tuned`, 262K de contexto)
-- **2ª opção (fallback):** `google/gemma-4-26b-a4b-it:free` (Gemma 4 26B A4B — MoE mais rápido, 262K de contexto)
+- **1ª opção (padrão):** `google/gemini-3.8-flash` (Gemini 3.8 Flash — 1M de contexto)
+- **2ª opção (rápido/econômico e fallback):** `google/gemini-3.1-flash-lite` (Gemini 3.1 Flash Lite — 1M de contexto)
+- **3ª opção (gratuito):** `google/gemma-4-31b-it:free` (Gemma 4 31B — 262K de contexto)
 
 Configurações aplicadas no roteamento:
 
