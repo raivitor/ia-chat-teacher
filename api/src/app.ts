@@ -30,8 +30,12 @@ app.get(['/healthcheck', '/api/healthcheck'], async (_req: Request, res: Respons
   }
 })
 
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+app.use((err: Error, _req: Request, res: Response, next: NextFunction) => {
   console.error('Unhandled error:', err)
+  if (res.headersSent) {
+    next(err)
+    return
+  }
   res.status(500).json({ error: 'Internal Server Error' })
 })
 

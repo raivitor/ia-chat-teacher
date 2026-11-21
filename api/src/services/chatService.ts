@@ -1,4 +1,4 @@
-import { pipeUIMessageStreamToResponse, streamText } from 'ai'
+import { pipeUIMessageStreamToResponse, stepCountIs, streamText } from 'ai'
 import { asc, eq } from 'drizzle-orm'
 import type { Response } from 'express'
 
@@ -102,7 +102,7 @@ export const chatService = {
       ...(systemPrompt ? { system: systemPrompt } : {}),
       messages: modelMessages,
       ...DEFAULT_GENERATION_PARAMS,
-      ...(tools ? { tools, maxSteps: 5 } : {}),
+      ...(tools ? { tools, stopWhen: stepCountIs(5) } : {}),
       providerOptions,
       onChunk: ({ chunk }) => {
         if (ttftMs === undefined && (chunk.type === 'text-delta' || chunk.type === 'reasoning-delta')) {
@@ -169,7 +169,7 @@ export const chatService = {
     })
 
     // Stream to Express response using AI SDK helper
-    pipeUIMessageStreamToResponse({
+    await pipeUIMessageStreamToResponse({
       response: res,
       stream: result.toUIMessageStream(),
       status: 200,

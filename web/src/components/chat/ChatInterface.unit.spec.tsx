@@ -24,7 +24,7 @@ vi.mock('../../lib/api', () => ({
 
 import { useChat } from '@ai-sdk/react'
 import type { UIMessage } from 'ai'
-import { api } from '../../lib/api'
+import { api, type ConversationWithMessages } from '../../lib/api'
 import ChatInterface, { ContextUsage, dbMessageToUIMessage, formatNumber } from './ChatInterface'
 
 const makeDbMessage = (
@@ -48,11 +48,11 @@ const makeDbMessage = (
   ...overrides,
 })
 
-const baseConversation = {
+const baseConversation: ConversationWithMessages = {
   id: 'conv-1',
   seq: 1,
   level: 'B1',
-  profile: 'professor' as const,
+  profile: 'professor',
   model: 'model-a',
   title: 'Test chat',
   metadata: {},
@@ -62,8 +62,6 @@ const baseConversation = {
   updatedAt: '',
   messages: [],
 }
-
-type TestConversation = typeof baseConversation
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -239,7 +237,7 @@ describe('ChatInterface', () => {
   })
 
   it('waits for conversation history before initializing useChat', async () => {
-    let resolveConversation: ((value: TestConversation) => void) | undefined
+    let resolveConversation: ((value: ConversationWithMessages) => void) | undefined
     vi.mocked(api.getConversation).mockImplementation(
       () =>
         new Promise(resolve => {
@@ -273,7 +271,10 @@ describe('ChatInterface', () => {
     const { rerender } = render(<ChatInterface conversationId='conv-1' />)
 
     await waitFor(() => {
-      const chatOptions = vi.mocked(useChat).mock.calls.at(-1)?.[0] as unknown as { id?: string; messages?: UIMessage[] }
+      const chatOptions = vi.mocked(useChat).mock.calls.at(-1)?.[0] as unknown as {
+        id?: string
+        messages?: UIMessage[]
+      }
       expect(chatOptions?.id).toBe('conv-1')
       expect(chatOptions?.messages?.[0]?.id).toBe('u1')
     })
@@ -298,7 +299,7 @@ describe('ChatInterface', () => {
   })
 
   it('ignores late conversation responses after switching conversationId', async () => {
-    const resolvers: Record<string, (value: TestConversation) => void> = {}
+    const resolvers: Record<string, (value: ConversationWithMessages) => void> = {}
     vi.mocked(api.getConversation).mockImplementation(
       id =>
         new Promise(resolve => {
@@ -328,7 +329,10 @@ describe('ChatInterface', () => {
     })
 
     await waitFor(() => {
-      const chatOptions = vi.mocked(useChat).mock.calls.at(-1)?.[0] as unknown as { id?: string; messages?: UIMessage[] }
+      const chatOptions = vi.mocked(useChat).mock.calls.at(-1)?.[0] as unknown as {
+        id?: string
+        messages?: UIMessage[]
+      }
       expect(chatOptions?.id).toBe('conv-2')
       expect(chatOptions?.messages?.[0]?.id).toBe('u2')
     })

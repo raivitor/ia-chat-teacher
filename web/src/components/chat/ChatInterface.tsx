@@ -5,7 +5,7 @@ import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
 import { useEffect, useRef, useState } from 'react'
 
-import { api, type AIModel, type ConversationWithMessages } from '../../lib/api'
+import { api, type ConversationWithMessages } from '../../lib/api'
 import MessageInput from './MessageInput'
 import MessageList from './MessageList'
 
@@ -54,13 +54,15 @@ export function ContextUsage({ tokensUsed, contextWindow }: ContextUsageProps) {
 
 interface ChatSessionProps {
   conversationId: string
-  initialMessages: UIMessage[]
-  conversation: ConversationWithMessages | null
-  setConversation: (conversation: ConversationWithMessages) => void
+  initialConversation: ConversationWithMessages
   modelsMap: Record<string, number>
 }
 
-function ChatSession({ conversationId, initialMessages, conversation, setConversation, modelsMap }: ChatSessionProps) {
+function ChatSession({ conversationId, initialConversation, modelsMap }: ChatSessionProps) {
+  const [conversation, setConversation] = useState(initialConversation)
+  const [initialMessages] = useState(() =>
+    initialConversation.messages.filter(m => m.role !== 'system').map(dbMessageToUIMessage),
+  )
   const [inputValue, setInputValue] = useState('')
   const prevStatusRef = useRef<string>('')
 
@@ -88,20 +90,27 @@ function ChatSession({ conversationId, initialMessages, conversation, setConvers
 
   // Refetch conversation after streaming ends to get updated token counts
   useEffect(() => {
+    let cancelled = false
+
     if (prevStatusRef.current === 'streaming' && status === 'ready') {
       api
         .getConversation(conversationId)
-        .then(setConversation)
+        .then(updated => {
+          if (!cancelled) setConversation(updated)
+        })
         .catch(() => undefined)
     }
     prevStatusRef.current = status
+
+    return () => {
+      cancelled = true
+    }
   }, [status, conversationId])
 
   const isActive = status === 'submitted' || status === 'streaming'
 
-  const contextWindow = conversation ? (modelsMap[conversation.model] ?? null) : null
+  const contextWindow = modelsMap[conversation.model] ?? null
   const tokensUsed = (() => {
-    if (!conversation) return 0
     // Use the last assistant message's totalTokens as the context usage indicator.
     // Each call sends the full conversation history, so the most recent message's
     // inputTokens already reflects the entire accumulated context. Summing across
@@ -155,42 +164,45 @@ function ChatSession({ conversationId, initialMessages, conversation, setConvers
   )
 }
 
-type LoadedChatState = {
-  conversationId: string
-  messages: UIMessage[]
-} | null
+type LoadState =
+  | {
+      conversationId: string
+      status: 'loaded'
+      conversation: ConversationWithMessages
+      modelsMap: Record<string, number>
+    }
+  | {
+      conversationId: string
+      status: 'error'
+      error: string
+    }
+  | null
 
 export default function ChatInterface({ conversationId }: ChatInterfaceProps) {
-  const [loadedChat, setLoadedChat] = useState<LoadedChatState>(null)
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [conversation, setConversation] = useState<ConversationWithMessages | null>(null)
-  const [modelsMap, setModelsMap] = useState<Record<string, number>>({})
+  const [loadState, setLoadState] = useState<LoadState>(null)
 
   useEffect(() => {
     let cancelled = false
 
-    setLoadedChat(null)
-    setLoadError(null)
-
     void Promise.all([api.getConversation(conversationId), api.getModels()])
-      .then(([conv, { models }]) => {
+      .then(([conversation, { models }]) => {
         if (cancelled) return
 
-        const map: Record<string, number> = {}
-        models.forEach((m: AIModel) => {
-          map[m.id] = m.contextWindow
-        })
-        setModelsMap(map)
-        setConversation(conv)
-        setLoadedChat({
+        setLoadState({
           conversationId,
-          messages: conv.messages.filter(m => m.role !== 'system').map(dbMessageToUIMessage),
+          status: 'loaded',
+          conversation,
+          modelsMap: Object.fromEntries(models.map(m => [m.id, m.contextWindow])),
         })
       })
       .catch(() => {
         if (cancelled) return
 
-        setLoadError('Failed to load conversation history.')
+        setLoadState({
+          conversationId,
+          status: 'error',
+          error: 'Failed to load conversation history.',
+        })
       })
 
     return () => {
@@ -198,26 +210,24 @@ export default function ChatInterface({ conversationId }: ChatInterfaceProps) {
     }
   }, [conversationId])
 
-  if (loadError) {
-    return (
-      <div className='chat-interface'>
-        <div className='load-error'>{loadError}</div>
-      </div>
-    )
+  if (loadState?.conversationId !== conversationId) {
+    return <div className='chat-interface' />
   }
 
-  if (loadedChat?.conversationId !== conversationId) {
-    return <div className='chat-interface' />
+  if (loadState.status === 'error') {
+    return (
+      <div className='chat-interface'>
+        <div className='load-error'>{loadState.error}</div>
+      </div>
+    )
   }
 
   return (
     <ChatSession
       key={conversationId}
       conversationId={conversationId}
-      initialMessages={loadedChat.messages}
-      conversation={conversation}
-      setConversation={setConversation}
-      modelsMap={modelsMap}
+      initialConversation={loadState.conversation}
+      modelsMap={loadState.modelsMap}
     />
   )
 }

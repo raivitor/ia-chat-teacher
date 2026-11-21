@@ -51,8 +51,9 @@ beforeEach(() => {
 })
 
 describe('LevelSelector', () => {
-  it('renders all 6 level buttons', () => {
+  it('renders all 6 level buttons', async () => {
     render(<LevelSelector />)
+    await screen.findByRole('combobox')
 
     expect(screen.getByText(/A1/)).toBeInTheDocument()
     expect(screen.getByText(/A2/)).toBeInTheDocument()
@@ -62,23 +63,26 @@ describe('LevelSelector', () => {
     expect(screen.getByText(/C2/)).toBeInTheDocument()
   })
 
-  it('defaults to B1 when no localStorage entry', () => {
+  it('defaults to B1 when no localStorage entry', async () => {
     render(<LevelSelector />)
+    await screen.findByRole('combobox')
 
     const b1Button = screen.getByRole('button', { name: /B1/ })
     expect(b1Button).toHaveClass('selected')
   })
 
-  it('reads preferred level from localStorage on mount', () => {
+  it('reads preferred level from localStorage on mount', async () => {
     localStorage.setItem('preferredLevel', 'C1')
     render(<LevelSelector />)
+    await screen.findByRole('combobox')
 
     expect(screen.getByRole('button', { name: /C1/ })).toHaveClass('selected')
   })
 
-  it('ignores invalid localStorage value and falls back to B1', () => {
+  it('ignores invalid localStorage value and falls back to B1', async () => {
     localStorage.setItem('preferredLevel', 'Z9')
     render(<LevelSelector />)
+    await screen.findByRole('combobox')
 
     expect(screen.getByRole('button', { name: /B1/ })).toHaveClass('selected')
   })
