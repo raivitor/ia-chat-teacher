@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { UIMessage } from 'ai'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import MessageList from './MessageList'
 
@@ -105,5 +106,22 @@ describe('MessageList', () => {
 
     const typingIndicator = document.querySelector('.typing-indicator')
     expect(typingIndicator).not.toBeInTheDocument()
+  })
+
+  it('renders speak button on assistant messages when ttsSupported is true', async () => {
+    const onSpeak = vi.fn()
+    const messages = [makeMessage('1', 'assistant', 'How was your day? (Small tip: say "went")')]
+
+    render(
+      <MessageList
+        messages={messages}
+        isWaitingResponse={false}
+        ttsSupported={true}
+        onSpeak={onSpeak}
+      />,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Ouvir' }))
+    expect(onSpeak).toHaveBeenCalledWith('How was your day? (Small tip: say "went")', '1')
   })
 })

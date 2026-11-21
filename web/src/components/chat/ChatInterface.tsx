@@ -7,8 +7,16 @@ import { useEffect, useRef, useState } from 'react'
 
 import { api, type AIModel, type ConversationWithMessages } from '../../lib/api'
 import { CONVERSATIONS_CHANGED_EVENT, notifyConversationsChanged, PROFILE_META } from '../../lib/profiles'
+import { useSpeechRecognition } from '../../lib/voice/useSpeechRecognition'
+import { useSpeechSynthesis } from '../../lib/voice/useSpeechSynthesis'
+import {
+  loadVoicePreferences,
+  saveVoicePreferences,
+  SPEECH_RATES,
+  type VoicePreferences,
+} from '../../lib/voice/voicePreferences'
 import MessageInput from './MessageInput'
-import MessageList from './MessageList'
+import MessageList, { getMessageText } from './MessageList'
 
 interface ChatInterfaceProps {
   conversationId: string
@@ -67,7 +75,14 @@ function ChatSession({ conversationId, initialConversation, modelsById }: ChatSe
   const [inputValue, setInputValue] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [voicePanelOpen, setVoicePanelOpen] = useState(false)
+  const [voicePrefs, setVoicePrefs] = useState<VoicePreferences>(loadVoicePreferences)
   const prevStatusRef = useRef<string>('')
+  const prevSpeakStatusRef = useRef<string>('')
+
+  const tts = useSpeechSynthesis()
+  const stt = useSpeechRecognition()
+  const { isSupported: ttsSupported, speak: speakText } = tts
 
   const { messages, status, error, sendMessage, stop, regenerate } = useChat({
     id: conversationId,
@@ -109,6 +124,22 @@ function ChatSession({ conversationId, initialConversation, modelsById }: ChatSe
       cancelled = true
     }
   }, [status, conversationId])
+
+  // Auto-speak the latest assistant response when streaming finishes
+  useEffect(() => {
+    const justFinishedStreaming = prevSpeakStatusRef.current === 'streaming' && status === 'ready'
+    prevSpeakStatusRef.current = status
+
+    if (!justFinishedStreaming || !voicePrefs.autoSpeak || !ttsSupported) return
+
+    const lastAssistant = messages.findLast(m => m.role === 'assistant')
+    if (!lastAssistant) return
+
+    const text = getMessageText(lastAssistant)
+    if (text) {
+      speakText(text, lastAssistant.id, { voiceURI: voicePrefs.voiceURI, rate: voicePrefs.rate })
+    }
+  }, [status, messages, voicePrefs.autoSpeak, voicePrefs.voiceURI, voicePrefs.rate, ttsSupported, speakText])
 
   const isActive = status === 'submitted' || status === 'streaming'
   const isFinished = conversation.finishedAt !== null
@@ -160,6 +191,14 @@ function ChatSession({ conversationId, initialConversation, modelsById }: ChatSe
     return totalTokens ?? inputTokens + outputTokens
   })()
 
+  function updateVoicePrefs(patch: Partial<VoicePreferences>) {
+    setVoicePrefs(prev => {
+      const next = { ...prev, ...patch }
+      saveVoicePreferences(next)
+      return next
+    })
+  }
+
   async function handleSubmit() {
     if (!inputValue.trim() || isActive || isFinished) return
     const text = inputValue
@@ -167,7 +206,32 @@ function ChatSession({ conversationId, initialConversation, modelsById }: ChatSe
     await sendMessage({ text })
   }
 
+  function handleToggleListening() {
+    if (isActive || isFinished) return
+
+    if (stt.isListening) {
+      stt.stop()
+      return
+    }
+
+    tts.stop()
+    stt.start(transcript => {
+      const trimmed = transcript.trim()
+      if (!trimmed) return
+
+      if (voicePrefs.autoSendTranscript) {
+        const combined = inputValue.trim() ? `${inputValue.trim()} ${trimmed}` : trimmed
+        setInputValue('')
+        void sendMessage({ text: combined })
+      } else {
+        setInputValue(prev => (prev.trim() ? `${prev.trimEnd()} ${trimmed}` : trimmed))
+      }
+    })
+  }
+
   async function handleToggleFinish() {
+    stt.stop()
+    tts.stop()
     setActionLoading(true)
     setActionError(null)
     try {
@@ -200,17 +264,78 @@ function ChatSession({ conversationId, initialConversation, modelsById }: ChatSe
             )}
           </div>
         </div>
-        <button
-          type='button'
-          className={isFinished ? 'reopen-btn' : 'finish-btn'}
-          disabled={isActive || actionLoading || (!isFinished && messages.length === 0)}
-          title={!isFinished && messages.length === 0 ? 'Envie ao menos uma mensagem antes de finalizar' : undefined}
-          onClick={() => {
-            void handleToggleFinish()
-          }}>
-          {actionLoading ? 'Salvando...' : isFinished ? 'Reabrir conversa' : 'Finalizar conversa'}
-        </button>
+        <div className='chat-header-actions'>
+          <button
+            type='button'
+            className={`voice-toggle-btn ${voicePanelOpen ? 'active' : ''}`}
+            aria-expanded={voicePanelOpen}
+            onClick={() => setVoicePanelOpen(prev => !prev)}>
+            Voz
+          </button>
+          <button
+            type='button'
+            className={isFinished ? 'reopen-btn' : 'finish-btn'}
+            disabled={isActive || actionLoading || (!isFinished && messages.length === 0)}
+            title={!isFinished && messages.length === 0 ? 'Envie ao menos uma mensagem antes de finalizar' : undefined}
+            onClick={() => {
+              void handleToggleFinish()
+            }}>
+            {actionLoading ? 'Salvando...' : isFinished ? 'Reabrir conversa' : 'Finalizar conversa'}
+          </button>
+        </div>
       </header>
+      {voicePanelOpen && (
+        <div className='voice-panel'>
+          <label className='voice-field'>
+            <span>Voz (inglês):</span>
+            <select
+              value={voicePrefs.voiceURI ?? ''}
+              disabled={!tts.isSupported || tts.voices.length === 0}
+              onChange={e => updateVoicePrefs({ voiceURI: e.target.value || null })}>
+              <option value=''>{tts.voices.length > 0 ? 'Automática (inglês)' : 'Voz padrão do navegador'}</option>
+              {tts.voices.map(voice => (
+                <option
+                  key={voice.voiceURI}
+                  value={voice.voiceURI}>
+                  {voice.name} ({voice.lang})
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className='voice-field'>
+            <span>Velocidade:</span>
+            <div className='voice-rate-group'>
+              {SPEECH_RATES.map(rate => (
+                <button
+                  key={rate}
+                  type='button'
+                  className={`voice-rate-btn ${voicePrefs.rate === rate ? 'selected' : ''}`}
+                  onClick={() => updateVoicePrefs({ rate })}>
+                  {rate}x
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className='voice-checkbox'>
+            <input
+              type='checkbox'
+              checked={voicePrefs.autoSpeak}
+              disabled={!tts.isSupported}
+              onChange={e => updateVoicePrefs({ autoSpeak: e.target.checked })}
+            />
+            <span>Ler respostas automaticamente</span>
+          </label>
+          <label className='voice-checkbox'>
+            <input
+              type='checkbox'
+              checked={voicePrefs.autoSendTranscript}
+              disabled={!stt.isSupported}
+              onChange={e => updateVoicePrefs({ autoSendTranscript: e.target.checked })}
+            />
+            <span>Enviar ao terminar de falar</span>
+          </label>
+        </div>
+      )}
       {actionError && <div className='stream-error'>{actionError}</div>}
       {error && (
         <div className='stream-error'>
@@ -229,6 +354,12 @@ function ChatSession({ conversationId, initialConversation, modelsById }: ChatSe
         messages={messages}
         isWaitingResponse={status === 'submitted'}
         assistantName={profileMeta.name}
+        ttsSupported={tts.isSupported}
+        speakingMessageId={tts.speakingMessageId}
+        onSpeak={(text, messageId) => {
+          tts.speak(text, messageId, { voiceURI: voicePrefs.voiceURI, rate: voicePrefs.rate })
+        }}
+        onStopSpeaking={tts.stop}
       />
       {contextWindow !== null && tokensUsed > 0 && (
         <ContextUsage
@@ -245,9 +376,16 @@ function ChatSession({ conversationId, initialConversation, modelsById }: ChatSe
         disabled={isActive || isFinished}
         isStreaming={isActive}
         onStop={() => {
+          stt.stop()
+          tts.stop()
           void stop()
         }}
         finished={isFinished}
+        sttSupported={stt.isSupported}
+        isListening={stt.isListening}
+        interimTranscript={stt.interimTranscript}
+        voiceError={stt.error}
+        onToggleListening={handleToggleListening}
       />
     </div>
   )

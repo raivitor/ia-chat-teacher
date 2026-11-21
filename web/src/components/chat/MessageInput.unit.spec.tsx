@@ -167,4 +167,24 @@ describe('MessageInput', () => {
 
     expect(onChange).toHaveBeenCalled()
   })
+
+  it('calls onToggleListening when mic button is clicked and displays interim transcript', async () => {
+    const onToggleListening = vi.fn()
+    render(
+      <MessageInput
+        value=''
+        onChange={vi.fn()}
+        onSubmit={vi.fn()}
+        disabled={false}
+        sttSupported={true}
+        isListening={true}
+        interimTranscript='Hello world'
+        onToggleListening={onToggleListening}
+      />,
+    )
+
+    expect(screen.getByText(/Hello world/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Parar gravação' }))
+    expect(onToggleListening).toHaveBeenCalledOnce()
+  })
 })

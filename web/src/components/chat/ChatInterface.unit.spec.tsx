@@ -415,4 +415,19 @@ describe('ChatInterface', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
     expect(regenerate).toHaveBeenCalledOnce()
   })
+
+  it('toggles voice settings panel with rate selector and persists selection', async () => {
+    localStorage.clear()
+    render(<ChatInterface conversationId='conv-1' />)
+
+    const voiceButton = await screen.findByRole('button', { name: 'Voz' })
+    await userEvent.click(voiceButton)
+
+    expect(screen.getByText('Velocidade:')).toBeInTheDocument()
+    const slowRateButton = screen.getByRole('button', { name: '0.75x' })
+    await userEvent.click(slowRateButton)
+
+    expect(slowRateButton).toHaveClass('selected')
+    expect(JSON.parse(localStorage.getItem('voicePreferences') ?? '{}').rate).toBe(0.75)
+  })
 })
