@@ -1,8 +1,8 @@
 export const DEVELOPMENT_DEFAULT_MODEL = 'google/gemma-4-31b-it:free'
-export const PRODUCTION_RECOMMENDED_MODEL = 'deepseek/deepseek-v4-flash'
+export const PRODUCTION_RECOMMENDED_MODEL = 'google/gemma-4-31b-it:free'
 
-// Paid fallback: use when the primary model or its routed providers are unavailable.
-export const FALLBACK_MODEL = PRODUCTION_RECOMMENDED_MODEL
+// Fallback: use when the primary model or its routed providers are unavailable.
+export const FALLBACK_MODEL = 'google/gemma-4-26b-a4b-it:free'
 
 export const DEFAULT_MODEL =
   process.env.OPENROUTER_DEFAULT_MODEL ??
@@ -11,16 +11,10 @@ export const DEFAULT_MODEL =
 export const AVAILABLE_MODELS = [
   { id: 'google/gemma-4-31b-it:free', name: 'Gemma 4 (31B) - Free', contextWindow: 262_144 },
   {
-    id: 'deepseek/deepseek-v4-flash:free',
-    name: 'DeepSeek V4 Flash - Free',
-    contextWindow: 1_048_576,
-  },
-  {
     id: 'google/gemma-4-26b-a4b-it:free',
     name: 'Gemma 4 (26B A4B) - Free',
     contextWindow: 262_144,
   },
-  { id: 'deepseek/deepseek-v4-flash', name: 'DeepSeek V4 Flash', contextWindow: 1_048_576 },
 ]
 
 export const DEFAULT_GENERATION_PARAMS = {

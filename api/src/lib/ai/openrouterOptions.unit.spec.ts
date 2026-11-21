@@ -7,7 +7,7 @@ test('buildOpenRouterProviderOptions configures sticky low-latency fallback rout
   const options = buildOpenRouterProviderOptions({
     conversationId: 'conversation-1',
     primaryModel: 'google/gemma-4-31b-it:free',
-    fallbackModel: 'deepseek/deepseek-v4-flash',
+    fallbackModel: 'google/gemma-4-26b-a4b-it:free',
   })
 
   assert.deepStrictEqual(options, {
@@ -18,7 +18,7 @@ test('buildOpenRouterProviderOptions configures sticky low-latency fallback rout
         allow_fallbacks: true,
       },
       reasoning: { effort: 'none' },
-      models: ['google/gemma-4-31b-it:free', 'deepseek/deepseek-v4-flash'],
+      models: ['google/gemma-4-31b-it:free', 'google/gemma-4-26b-a4b-it:free'],
       usage: { include: true },
     },
   })
@@ -27,12 +27,12 @@ test('buildOpenRouterProviderOptions configures sticky low-latency fallback rout
 test('buildOpenRouterProviderOptions can omit usage accounting', () => {
   const options = buildOpenRouterProviderOptions({
     conversationId: 'conversation-1',
-    primaryModel: 'deepseek/deepseek-v4-flash',
-    fallbackModel: 'deepseek/deepseek-v4-flash',
+    primaryModel: 'google/gemma-4-26b-a4b-it:free',
+    fallbackModel: 'google/gemma-4-26b-a4b-it:free',
     includeUsage: false,
   })
 
-  assert.deepStrictEqual(options.openrouter.models, ['deepseek/deepseek-v4-flash'])
+  assert.deepStrictEqual(options.openrouter.models, ['google/gemma-4-26b-a4b-it:free'])
   assert.equal(options.openrouter.usage, undefined)
 })
 
