@@ -9,6 +9,7 @@ export interface Conversation {
   title: string
   metadata: Record<string, unknown>
   webSearchEnabled: boolean
+  finishedAt: Date | null
   reviewedAt: Date | null
   createdAt: Date
   updatedAt: Date

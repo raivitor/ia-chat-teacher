@@ -15,7 +15,15 @@ export const AVAILABLE_MODELS = [
     name: 'Gemma 4 (26B A4B) - Free',
     contextWindow: 262_144,
   },
-]
+] as const
+
+const ALLOWED_MODEL_IDS = new Set<string>(AVAILABLE_MODELS.map(model => model.id))
+
+export function isAllowedModel(modelId: string): boolean {
+  return ALLOWED_MODEL_IDS.has(modelId)
+}
+
+export const MAX_HISTORY_MESSAGES = 40
 
 export const DEFAULT_GENERATION_PARAMS = {
   maxOutputTokens: 1024,

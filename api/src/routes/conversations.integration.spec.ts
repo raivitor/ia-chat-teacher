@@ -112,6 +112,27 @@ integrationDescribe('Route integration: conversations', () => {
     assert.strictEqual(response.status, 400)
   })
 
+  test('POST /api/conversations returns 400 for unsupported model', async () => {
+    const response = await api.post('/api/conversations').send({ level: 'B1', model: 'openai/gpt-4o' })
+
+    assert.strictEqual(response.status, 400)
+  })
+
+  test('POST /api/conversations/:id/finish and /reopen toggle finishedAt', async () => {
+    const createResponse = await api.post('/api/conversations').send({ level: 'B1' })
+    const created = getResponseBody<ConversationResponse>(createResponse).conversation
+
+    const finishResponse = await api.post(`/api/conversations/${created.id}/finish`)
+    const finished = getResponseBody<{ conversation: ConversationBody & { finishedAt: string | null } }>(finishResponse)
+    assert.strictEqual(finishResponse.status, 200)
+    assert.ok(finished.conversation.finishedAt)
+
+    const reopenResponse = await api.post(`/api/conversations/${created.id}/reopen`)
+    const reopened = getResponseBody<{ conversation: ConversationBody & { finishedAt: string | null } }>(reopenResponse)
+    assert.strictEqual(reopenResponse.status, 200)
+    assert.strictEqual(reopened.conversation.finishedAt, null)
+  })
+
   test('DELETE /api/conversations/:id returns 200 for existing conversation', async () => {
     const createResponse = await api.post('/api/conversations').send({ level: 'C1' })
     const created = getResponseBody<ConversationResponse>(createResponse).conversation
@@ -186,5 +207,18 @@ integrationDescribe('Route integration: chat validation', () => {
     })
 
     assert.strictEqual(response.status, 404)
+  })
+
+  test('POST /api/chat returns 409 for finished conversation', async () => {
+    const createResponse = await api.post('/api/conversations').send({ level: 'B1' })
+    const created = getResponseBody<ConversationResponse>(createResponse).conversation
+    await api.post(`/api/conversations/${created.id}/finish`)
+
+    const response = await api.post('/api/chat').send({
+      conversationId: created.id,
+      message: { role: 'user', content: 'Hello' },
+    })
+
+    assert.strictEqual(response.status, 409)
   })
 })

@@ -22,6 +22,7 @@ export interface Conversation {
   title: string
   metadata: Record<string, unknown>
   webSearchEnabled: boolean
+  finishedAt: string | null
   reviewedAt: string | null
   createdAt: string
   updatedAt: string
@@ -79,6 +80,24 @@ export const api = {
     const res = await fetch(`${API_URL}/api/conversations/${id}`)
     if (!res.ok) throw new Error('Failed to fetch conversation')
     const data = (await res.json()) as { conversation: ConversationWithMessages }
+    return data.conversation
+  },
+
+  async finishConversation(id: string): Promise<Conversation> {
+    const res = await fetch(`${API_URL}/api/conversations/${id}/finish`, {
+      method: 'POST',
+    })
+    if (!res.ok) throw new Error('Failed to finish conversation')
+    const data = (await res.json()) as { conversation: Conversation }
+    return data.conversation
+  },
+
+  async reopenConversation(id: string): Promise<Conversation> {
+    const res = await fetch(`${API_URL}/api/conversations/${id}/reopen`, {
+      method: 'POST',
+    })
+    if (!res.ok) throw new Error('Failed to reopen conversation')
+    const data = (await res.json()) as { conversation: Conversation }
     return data.conversation
   },
 

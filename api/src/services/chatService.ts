@@ -5,15 +5,71 @@ import type { Response } from 'express'
 import { db } from '../database/client.js'
 import { conversations, messages } from '../database/schema.js'
 import { getChatModel } from '../lib/ai/client.js'
-import { DEFAULT_GENERATION_PARAMS, FALLBACK_MODEL } from '../lib/ai/config.js'
+import { DEFAULT_GENERATION_PARAMS, FALLBACK_MODEL, MAX_HISTORY_MESSAGES } from '../lib/ai/config.js'
 import { buildOpenRouterProviderOptions } from '../lib/ai/openrouterOptions.js'
 import { webSearchTool } from '../lib/ai/tools/webSearch.js'
 import { mapLanguageModelUsage } from '../lib/ai/usageMetadata.js'
 import { logger } from '../lib/observability/logger.js'
 import { loadPrompt } from '../lib/prompts/loader.js'
-import type { CreateMessageInput } from '../types/message.js'
+import type { CreateMessageInput, MessagePart } from '../types/message.js'
 
 const NORMAL_FINISH_REASONS = new Set(['stop'])
+
+export interface StepLike {
+  text: string
+  toolCalls: ReadonlyArray<{
+    toolCallId: string
+    toolName: string
+    input: unknown
+  }>
+  toolResults: ReadonlyArray<{
+    toolCallId: string
+    output: unknown
+  }>
+}
+
+export function buildModelMessages(
+  history: ReadonlyArray<{ role: string; content: string }>,
+  userContent: string,
+  maxHistoryMessages: number = MAX_HISTORY_MESSAGES,
+): Array<{ role: 'user' | 'assistant'; content: string }> {
+  const filtered = history.filter(message => message.role === 'user' || message.role === 'assistant')
+  const recentHistory = (maxHistoryMessages > 0 ? filtered.slice(-maxHistoryMessages) : []).map(message => ({
+    role: message.role as 'user' | 'assistant',
+    content: message.content,
+  }))
+
+  return [...recentHistory, { role: 'user', content: userContent }]
+}
+
+export function buildAssistantMessageParts(steps: ReadonlyArray<StepLike>, fallbackText: string): MessagePart[] {
+  const parts: MessagePart[] = []
+
+  for (const step of steps) {
+    const resultsById = new Map(step.toolResults.map(result => [result.toolCallId, result.output]))
+
+    for (const toolCall of step.toolCalls) {
+      const hasOutput = resultsById.has(toolCall.toolCallId)
+      parts.push({
+        type: `tool-${toolCall.toolName}`,
+        toolCallId: toolCall.toolCallId,
+        state: hasOutput ? 'output-available' : 'input-available',
+        input: toolCall.input,
+        ...(hasOutput ? { output: resultsById.get(toolCall.toolCallId) } : {}),
+      })
+    }
+
+    if (step.text.trim()) {
+      parts.push({ type: 'text', text: step.text })
+    }
+  }
+
+  if (parts.length === 0 && fallbackText.trim()) {
+    parts.push({ type: 'text', text: fallbackText })
+  }
+
+  return parts
+}
 
 export const chatService = {
   async saveMessage(input: CreateMessageInput) {
@@ -44,12 +100,22 @@ export const chatService = {
     return message
   },
 
-  async streamResponse(conversationId: string, userContent: string, res: Response): Promise<void> {
+  async streamResponse(
+    conversationId: string,
+    userContent: string,
+    res: Response,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
     // Fetch conversation
     const [conversation] = await db.select().from(conversations).where(eq(conversations.id, conversationId))
 
     if (!conversation) {
       res.status(404).json({ error: 'Conversation not found' })
+      return
+    }
+
+    if (conversation.finishedAt !== null) {
+      res.status(409).json({ error: 'Conversation is already finished' })
       return
     }
 
@@ -60,29 +126,8 @@ export const chatService = {
       .where(eq(messages.conversationId, conversationId))
       .orderBy(asc(messages.createdAt))
 
-    // Load system prompt
+    // Prepare prompt and model before persisting the user message so config errors fail fast
     const systemPrompt = await loadPrompt(conversation.level, conversation.profile)
-
-    // Save user message first
-    await chatService.saveMessage({
-      conversationId,
-      role: 'user',
-      content: userContent,
-      parts: [{ type: 'text', text: userContent }],
-      metadata: {},
-    })
-
-    // Build model messages from saved history + new user message
-    const modelMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [
-      ...history
-        .filter(m => m.role === 'user' || m.role === 'assistant')
-        .map(m => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-        })),
-      { role: 'user', content: userContent },
-    ]
-
     const requestedModel = conversation.model
     const model = getChatModel(requestedModel)
     const providerOptions = buildOpenRouterProviderOptions({
@@ -92,8 +137,29 @@ export const chatService = {
       includeUsage: true,
     })
 
+    // Save user message before streaming
+    const savedUserMessage = await chatService.saveMessage({
+      conversationId,
+      role: 'user',
+      content: userContent,
+      parts: [{ type: 'text', text: userContent }],
+      metadata: {},
+    })
+
+    // Build model messages with sliding window + new user message
+    const modelMessages = buildModelMessages(history, userContent)
+
     const startTime = Date.now()
     let ttftMs: number | undefined
+    let assistantSaved = false
+
+    const cleanupOrphanedUserMessage = async () => {
+      if (assistantSaved) return
+      await db
+        .delete(messages)
+        .where(eq(messages.id, savedUserMessage.id))
+        .catch(() => {})
+    }
 
     const tools = conversation.webSearchEnabled ? { webSearch: webSearchTool } : undefined
 
@@ -103,13 +169,17 @@ export const chatService = {
       messages: modelMessages,
       ...DEFAULT_GENERATION_PARAMS,
       ...(tools ? { tools, stopWhen: stepCountIs(5) } : {}),
+      ...(abortSignal ? { abortSignal } : {}),
       providerOptions,
       onChunk: ({ chunk }) => {
         if (ttftMs === undefined && (chunk.type === 'text-delta' || chunk.type === 'reasoning-delta')) {
           ttftMs = Date.now() - startTime
         }
       },
-      onError: ({ error }) => {
+      onAbort: async () => {
+        await cleanupOrphanedUserMessage()
+      },
+      onError: async ({ error }) => {
         logger.error('llm.stream.error', {
           conversationId,
           level: conversation.level,
@@ -118,29 +188,35 @@ export const chatService = {
           latencyMs: Date.now() - startTime,
           error: error instanceof Error ? error.message : String(error),
         })
+
+        await cleanupOrphanedUserMessage()
       },
-      onFinish: async ({ text, finishReason, totalUsage, providerMetadata, model: responseModel }) => {
+      onFinish: async ({ text, steps, finishReason, totalUsage, providerMetadata, model: responseModel }) => {
         const latencyMs = Date.now() - startTime
         const usage = mapLanguageModelUsage(totalUsage)
         const openrouterUsage = providerMetadata?.openrouter?.usage
+        const parts = buildAssistantMessageParts(steps, text)
 
-        await chatService.saveMessage({
-          conversationId,
-          role: 'assistant',
-          content: text,
-          parts: [{ type: 'text', text }],
-          metadata: {
-            finishReason,
-            usage,
-            latencyMs,
-            ...(ttftMs === undefined ? {} : { ttftMs }),
-            requestedModel,
-            fallbackModel: FALLBACK_MODEL,
-            model: responseModel.modelId,
-            provider: responseModel.provider,
-            ...(openrouterUsage ? { providerMetadata: { openrouter: { usage: openrouterUsage } } } : {}),
-          },
-        })
+        if (parts.length > 0) {
+          await chatService.saveMessage({
+            conversationId,
+            role: 'assistant',
+            content: text,
+            parts,
+            metadata: {
+              finishReason,
+              usage,
+              latencyMs,
+              ...(ttftMs === undefined ? {} : { ttftMs }),
+              requestedModel,
+              fallbackModel: FALLBACK_MODEL,
+              model: responseModel.modelId,
+              provider: responseModel.provider,
+              ...(openrouterUsage ? { providerMetadata: { openrouter: { usage: openrouterUsage } } } : {}),
+            },
+          })
+          assistantSaved = true
+        }
 
         logger.info('llm.stream.finish', {
           conversationId,

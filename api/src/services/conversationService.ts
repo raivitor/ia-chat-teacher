@@ -2,7 +2,7 @@ import { asc, desc, eq, sql } from 'drizzle-orm'
 
 import { db } from '../database/client.js'
 import { conversations, conversationSeq, messages } from '../database/schema.js'
-import { DEFAULT_MODEL } from '../lib/ai/config.js'
+import { DEFAULT_MODEL, isAllowedModel } from '../lib/ai/config.js'
 import type { CreateConversationInput } from '../types/conversation.js'
 import { isValidLevel } from '../types/level.js'
 import { DEFAULT_PROFILE, isValidProfile } from '../types/profile.js'
@@ -26,6 +26,11 @@ export const conversationService = {
       throw new Error(`Invalid profile: "${profile}". Must be one of professor, bestfriend, secretary, girlfriend.`)
     }
 
+    const model = input.model ?? DEFAULT_MODEL
+    if (!isAllowedModel(model)) {
+      throw new Error(`Invalid model: "${model}".`)
+    }
+
     const now = new Date()
 
     const [conversation] = await db.transaction(async tx => {
@@ -39,7 +44,7 @@ export const conversationService = {
           seq,
           level: input.level,
           profile,
-          model: input.model ?? DEFAULT_MODEL,
+          model,
           title,
           metadata: input.metadata ?? {},
           webSearchEnabled: input.webSearchEnabled ?? false,
@@ -74,6 +79,33 @@ export const conversationService = {
       .orderBy(asc(messages.createdAt))
 
     return { ...conversation, messages: conversationMessages }
+  },
+
+  async finishConversation(id: string) {
+    const [updated] = await db
+      .update(conversations)
+      .set({
+        finishedAt: sql`COALESCE(${conversations.finishedAt}, NOW())`,
+        updatedAt: new Date(),
+      })
+      .where(eq(conversations.id, id))
+      .returning()
+
+    return updated ?? null
+  },
+
+  async reopenConversation(id: string) {
+    const [updated] = await db
+      .update(conversations)
+      .set({
+        finishedAt: null,
+        reviewedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(conversations.id, id))
+      .returning()
+
+    return updated ?? null
   },
 
   async deleteConversation(id: string) {

@@ -103,6 +103,48 @@ describe('api.getConversation', () => {
   })
 })
 
+describe('api.finishConversation', () => {
+  it('sends POST to /finish and returns conversation', async () => {
+    const conversation = { id: 'conv-1', finishedAt: '2026-11-20T22:00:00.000Z' }
+    mockFetch.mockResolvedValue(ok({ conversation }))
+
+    const result = await api.finishConversation('conv-1')
+
+    expect(result).toEqual(conversation)
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/conversations/conv-1/finish'),
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
+
+  it('throws when response is not ok', async () => {
+    mockFetch.mockResolvedValue(notOk())
+
+    await expect(api.finishConversation('conv-1')).rejects.toThrow('Failed to finish conversation')
+  })
+})
+
+describe('api.reopenConversation', () => {
+  it('sends POST to /reopen and returns conversation', async () => {
+    const conversation = { id: 'conv-1', finishedAt: null }
+    mockFetch.mockResolvedValue(ok({ conversation }))
+
+    const result = await api.reopenConversation('conv-1')
+
+    expect(result).toEqual(conversation)
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/conversations/conv-1/reopen'),
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
+
+  it('throws when response is not ok', async () => {
+    mockFetch.mockResolvedValue(notOk())
+
+    await expect(api.reopenConversation('conv-1')).rejects.toThrow('Failed to reopen conversation')
+  })
+})
+
 describe('api.deleteConversation', () => {
   it('sends DELETE request', async () => {
     mockFetch.mockResolvedValue(ok({}))

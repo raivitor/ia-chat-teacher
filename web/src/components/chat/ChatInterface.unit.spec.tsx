@@ -57,6 +57,7 @@ const baseConversation: ConversationWithMessages = {
   title: 'Test chat',
   metadata: {},
   webSearchEnabled: false,
+  finishedAt: null,
   reviewedAt: null,
   createdAt: '',
   updatedAt: '',

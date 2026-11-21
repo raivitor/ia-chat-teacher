@@ -1,13 +1,17 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { generateObject } from 'ai'
-import { asc, count, eq, inArray, isNull } from 'drizzle-orm'
+import { generateText, Output } from 'ai'
+import { and, asc, count, eq, exists, inArray, isNotNull, isNull } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '../database/client.js'
 import { conversations, messages } from '../database/schema.js'
 import { getChatModel } from '../lib/ai/client.js'
+import { DEFAULT_MODEL, FALLBACK_MODEL } from '../lib/ai/config.js'
+import { buildOpenRouterProviderOptions } from '../lib/ai/openrouterOptions.js'
+import { mapLanguageModelUsage } from '../lib/ai/usageMetadata.js'
+import { logger } from '../lib/observability/logger.js'
 
 const ankiCardSchema = z.object({
   cards: z.array(
@@ -19,7 +23,7 @@ const ankiCardSchema = z.object({
   ),
 })
 
-type AnkiCard = z.infer<typeof ankiCardSchema>['cards'][number]
+export type AnkiCard = z.infer<typeof ankiCardSchema>['cards'][number]
 
 function escapeCsvField(value: string): string {
   const needsQuoting = value.includes(';') || value.includes('"') || value.includes('\n') || value.includes('\r')
@@ -27,7 +31,21 @@ function escapeCsvField(value: string): string {
   return `"${value.replaceAll('"', '""')}"`
 }
 
-function buildCsv(cards: AnkiCard[]): string {
+export function deduplicateCards(cards: ReadonlyArray<AnkiCard>): AnkiCard[] {
+  const seen = new Set<string>()
+  const unique: AnkiCard[] = []
+
+  for (const card of cards) {
+    const key = card.front.trim().toLowerCase()
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    unique.push(card)
+  }
+
+  return unique
+}
+
+export function buildCsv(cards: ReadonlyArray<AnkiCard>): string {
   const header = ['#separator:semicolon', '#html:true', '#deck:English Coach - Revisão', '#notetype:Basic'].join('\n')
 
   if (cards.length === 0) return header
@@ -42,14 +60,27 @@ function buildCsv(cards: AnkiCard[]): string {
   return [header, ...rows].join('\n')
 }
 
+function unreviewedConversationFilter() {
+  return and(
+    isNotNull(conversations.finishedAt),
+    isNull(conversations.reviewedAt),
+    exists(
+      db
+        .select({ id: messages.id })
+        .from(messages)
+        .where(and(eq(messages.conversationId, conversations.id), inArray(messages.role, ['user', 'assistant']))),
+    ),
+  )
+}
+
 export const reviewService = {
   async countUnreviewed(): Promise<number> {
-    const [result] = await db.select({ count: count() }).from(conversations).where(isNull(conversations.reviewedAt))
+    const [result] = await db.select({ count: count() }).from(conversations).where(unreviewedConversationFilter())
     return result?.count ?? 0
   },
 
   async generateReview(): Promise<string> {
-    const unreviewed = await db.select().from(conversations).where(isNull(conversations.reviewedAt))
+    const unreviewed = await db.select().from(conversations).where(unreviewedConversationFilter())
 
     if (unreviewed.length === 0) {
       return buildCsv([])
@@ -59,35 +90,65 @@ export const reviewService = {
     const systemPrompt = await readFile(promptPath, 'utf8')
 
     const allCards: AnkiCard[] = []
+    const reviewedIds: string[] = []
+    let failedCount = 0
 
-    for (const conv of unreviewed) {
-      const msgs = await db
+    for (const conversation of unreviewed) {
+      const conversationMessages = await db
         .select()
         .from(messages)
-        .where(eq(messages.conversationId, conv.id))
+        .where(eq(messages.conversationId, conversation.id))
         .orderBy(asc(messages.createdAt))
 
-      const conversationText = msgs
-        .filter(m => m.role === 'user' || m.role === 'assistant')
-        .map(m => `${m.role === 'user' ? 'Student' : 'Coach'}: ${m.content}`)
+      const conversationText = conversationMessages
+        .filter(message => message.role === 'user' || message.role === 'assistant')
+        .map(message => `${message.role === 'user' ? 'Student' : 'Coach'}: ${message.content}`)
         .join('\n\n')
 
       if (!conversationText.trim()) continue
 
-      const { object } = await generateObject({
-        model: getChatModel(),
-        schema: ankiCardSchema,
-        system: systemPrompt,
-        prompt: conversationText,
-      })
+      const startTime = Date.now()
+      try {
+        const { output, totalUsage } = await generateText({
+          model: getChatModel(DEFAULT_MODEL),
+          output: Output.object({ schema: ankiCardSchema }),
+          system: systemPrompt,
+          prompt: conversationText,
+          providerOptions: buildOpenRouterProviderOptions({
+            conversationId: conversation.id,
+            primaryModel: DEFAULT_MODEL,
+            fallbackModel: FALLBACK_MODEL,
+            includeUsage: true,
+          }),
+        })
 
-      allCards.push(...object.cards)
+        allCards.push(...output.cards)
+        reviewedIds.push(conversation.id)
+
+        logger.info('review.extraction.finish', {
+          conversationId: conversation.id,
+          cardCount: output.cards.length,
+          latencyMs: Date.now() - startTime,
+          ...mapLanguageModelUsage(totalUsage),
+        })
+      } catch (error) {
+        failedCount += 1
+        logger.error('review.extraction.error', {
+          conversationId: conversation.id,
+          latencyMs: Date.now() - startTime,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
     }
 
-    // Mark all processed conversations as reviewed atomically
-    const ids = unreviewed.map(c => c.id)
-    await db.update(conversations).set({ reviewedAt: new Date() }).where(inArray(conversations.id, ids))
+    if (reviewedIds.length === 0 && failedCount > 0) {
+      throw new Error('Failed to extract review cards from conversations')
+    }
 
-    return buildCsv(allCards)
+    if (reviewedIds.length > 0) {
+      await db.update(conversations).set({ reviewedAt: new Date() }).where(inArray(conversations.id, reviewedIds))
+    }
+
+    return buildCsv(deduplicateCards(allCards))
   },
 }

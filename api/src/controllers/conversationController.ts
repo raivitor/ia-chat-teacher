@@ -35,6 +35,28 @@ export const conversationController = {
     return res.status(200).json({ conversation })
   },
 
+  finish: async (req: Request, res: Response) => {
+    const { id } = req.params as ConversationIdParameters
+    const conversation = await conversationService.finishConversation(id)
+
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' })
+    }
+
+    return res.status(200).json({ conversation })
+  },
+
+  reopen: async (req: Request, res: Response) => {
+    const { id } = req.params as ConversationIdParameters
+    const conversation = await conversationService.reopenConversation(id)
+
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' })
+    }
+
+    return res.status(200).json({ conversation })
+  },
+
   delete: async (req: Request, res: Response) => {
     const { id } = req.params as ConversationIdParameters
     const deleted = await conversationService.deleteConversation(id)

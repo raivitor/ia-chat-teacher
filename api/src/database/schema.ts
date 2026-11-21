@@ -1,13 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, check, integer, jsonb, pgSequence, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
-
-export const items = pgTable('items', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  name: text('name').notNull(),
-  description: text('description'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-})
+import { boolean, check, index, integer, jsonb, pgSequence, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
 export const conversationSeq = pgSequence('conversation_seq', { startWith: 1, increment: 1 })
 
@@ -22,6 +14,7 @@ export const conversations = pgTable(
     title: text('title').notNull(),
     metadata: jsonb('metadata').notNull().default('{}'),
     webSearchEnabled: boolean('web_search_enabled').notNull().default(false),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
     reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -32,6 +25,8 @@ export const conversations = pgTable(
       'conversations_profile_check',
       sql`${table.profile} in ('professor', 'bestfriend', 'secretary', 'girlfriend')`,
     ),
+    index('conversations_created_at_idx').on(table.createdAt),
+    index('conversations_review_queue_idx').on(table.finishedAt, table.reviewedAt),
   ],
 )
 
@@ -48,5 +43,8 @@ export const messages = pgTable(
     metadata: jsonb('metadata').notNull().default('{}'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [check('messages_role_check', sql`${table.role} in ('user', 'assistant', 'system')`)],
+  table => [
+    check('messages_role_check', sql`${table.role} in ('user', 'assistant', 'system')`),
+    index('messages_conversation_created_at_idx').on(table.conversationId, table.createdAt),
+  ],
 )

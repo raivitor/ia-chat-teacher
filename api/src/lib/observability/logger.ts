@@ -15,7 +15,12 @@ function write(level: LogLevel, event: string, fields: LogFields = {}): void {
     return
   }
 
-  console.warn(JSON.stringify(payload))
+  if (level === 'warn') {
+    console.warn(JSON.stringify(payload))
+    return
+  }
+
+  process.stdout.write(`${JSON.stringify(payload)}\n`)
 }
 
 export const logger = {
